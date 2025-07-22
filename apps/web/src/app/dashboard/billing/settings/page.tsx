@@ -128,7 +128,7 @@ export default function BillingSettingsPage() {
       setSettings(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof BillingSettings],
+          ...(prev[parent as keyof BillingSettings] as any),
           [child]: type === 'checkbox' ? checked : value
         }
       }));
