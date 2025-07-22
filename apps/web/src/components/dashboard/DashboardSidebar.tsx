@@ -47,6 +47,7 @@ const navigation = [
   { name: 'Automation', href: '/dashboard/automation', icon: Zap },
   { name: 'AI Predictive Maintenance', href: '/dashboard/ai/predictive-maintenance', icon: Brain },
   { name: 'AI Anomaly Detection', href: '/dashboard/ai/anomaly-detection', icon: Eye },
+  { name: 'AI NLP Reports', href: '/dashboard/ai/nlp-reports', icon: FileText },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
