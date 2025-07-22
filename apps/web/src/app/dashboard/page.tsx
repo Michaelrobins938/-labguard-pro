@@ -1,0 +1,219 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import {
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  BarChart3,
+  Calendar,
+  Users,
+  Settings
+} from 'lucide-react'
+
+interface DashboardStats {
+  totalEquipment: number
+  overdueCalibrations: number
+  completedCalibrations: number
+  upcomingCalibrations: number
+  complianceScore: number
+  teamMembers: number
+}
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalEquipment: 0,
+    overdueCalibrations: 0,
+    completedCalibrations: 0,
+    upcomingCalibrations: 0,
+    complianceScore: 0,
+    teamMembers: 0
+  })
+
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Mock data for beta testing
+    setTimeout(() => {
+      setStats({
+        totalEquipment: 24,
+        overdueCalibrations: 3,
+        completedCalibrations: 156,
+        upcomingCalibrations: 8,
+        complianceScore: 94,
+        teamMembers: 6
+      })
+      setLoading(false)
+    }, 1000)
+  }, [])
+
+  const recentActivities = [
+    {
+      id: 1,
+      type: 'calibration',
+      title: 'Centrifuge calibration completed',
+      description: 'Equipment ID: CF-001 passed all tests',
+      time: '2 hours ago',
+      status: 'success'
+    },
+    {
+      id: 2,
+      type: 'alert',
+      title: 'Overdue calibration detected',
+      description: 'Microscope MS-003 is 5 days overdue',
+      time: '4 hours ago',
+      status: 'warning'
+    },
+    {
+      id: 3,
+      type: 'report',
+      title: 'Monthly compliance report generated',
+      description: 'Compliance score: 94%',
+      time: '1 day ago',
+      status: 'info'
+    }
+  ]
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Welcome back, Beta User!
+        </h1>
+        <p className="text-gray-600">
+          Here's what's happening with your laboratory compliance today.
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Settings className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Total Equipment</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalEquipment}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Overdue</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.overdueCalibrations}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.completedCalibrations}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Clock className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Upcoming</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.upcomingCalibrations}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Compliance Score */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Compliance Score</h2>
+          <BarChart3 className="w-5 h-5 text-gray-400" />
+        </div>
+        <div className="flex items-center">
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Current Score</span>
+              <span className="text-sm font-medium text-gray-900">{stats.complianceScore}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${stats.complianceScore}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <Calendar className="w-5 h-5 text-gray-400" />
+        </div>
+        <div className="space-y-4">
+          {recentActivities.map((activity) => (
+            <div key={activity.id} className="flex items-start space-x-3">
+              <div className={`p-2 rounded-lg ${
+                activity.status === 'success' ? 'bg-green-100' :
+                activity.status === 'warning' ? 'bg-yellow-100' :
+                'bg-blue-100'
+              }`}>
+                {activity.type === 'calibration' && <CheckCircle className="w-4 h-4 text-green-600" />}
+                {activity.type === 'alert' && <AlertTriangle className="w-4 h-4 text-yellow-600" />}
+                {activity.type === 'report' && <BarChart3 className="w-4 h-4 text-blue-600" />}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                <p className="text-sm text-gray-600">{activity.description}</p>
+                <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Settings className="w-5 h-5 text-blue-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Add Equipment</span>
+          </button>
+          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Calendar className="w-5 h-5 text-green-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Schedule Calibration</span>
+          </button>
+          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <BarChart3 className="w-5 h-5 text-purple-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Generate Report</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+} 

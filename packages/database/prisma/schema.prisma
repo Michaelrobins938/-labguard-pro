@@ -1,0 +1,487 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  emailVerified     DateTime?
+  name              String?
+  image             String?
+  hashedPassword    String?
+  role              UserRole @default(TECHNICIAN)
+  isActive          Boolean  @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  
+  // User activities
+  equipmentOperations    EquipmentOperation[]
+  calibrationRecords     CalibrationRecord[]
+  complianceReports      ComplianceReport[]
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+  createdEquipment       Equipment[] @relation("CreatedBy")
+  
+  // Authentication
+  accounts          Account[]
+  sessions          Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Laboratory {
+  id                String   @id @default(cuid())
+  name              String
+  address           String?
+  phone             String?
+  email             String?
+  licenseNumber     String?
+  capNumber         String?
+  cliaNumber        String?
+  isActive          Boolean  @default(true)
+  settings          Json     @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  users             User[]
+  equipment         Equipment[]
+  complianceTemplates ComplianceTemplate[]
+  complianceReports ComplianceReport[]
+  subscriptions     Subscription[]
+  
+  @@map("laboratories")
+}
+
+model Equipment {
+  id                String           @id @default(cuid())
+  name              String
+  model             String
+  serialNumber      String
+  manufacturer      String
+  equipmentType     EquipmentType
+  location          String?
+  installDate       DateTime?
+  warrantyExpiry    DateTime?
+  status            EquipmentStatus  @default(ACTIVE)
+  specifications    Json             @default("{}")
+  maintenanceSchedule Json           @default("{}")
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  createdById       String
+  createdBy         User @relation("CreatedBy", fields: [createdById], references: [id])
+  
+  calibrationRecords CalibrationRecord[]
+  maintenanceRecords MaintenanceRecord[]
+  equipmentOperations EquipmentOperation[]
+  
+  @@unique([laboratoryId, serialNumber])
+  @@map("equipment")
+}
+
+model CalibrationRecord {
+  id                String              @id @default(cuid())
+  calibrationType   CalibrationType
+  scheduledDate     DateTime
+  performedDate     DateTime?
+  dueDate           DateTime
+  status            CalibrationStatus   @default(SCHEDULED)
+  results           Json                @default("{}")
+  measurements      Json                @default("{}")
+  environmentalConditions Json          @default("{}")
+  standardsUsed     Json                @default("{}")
+  complianceStatus  ComplianceStatus    @default(PENDING)
+  complianceScore   Float?
+  deviations        Json                @default("[]")
+  correctiveActions Json                @default("[]")
+  certificate       String?
+  notes             String?
+  aiAnalysis        Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  equipmentId       String
+  equipment         Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  performedById     String?
+  performedBy       User? @relation(fields: [performedById], references: [id])
+  templateId        String?
+  template          ComplianceTemplate? @relation(fields: [templateId], references: [id])
+  
+  @@map("calibration_records")
+}
+
+model ComplianceTemplate {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  category          String
+  promptTemplate    String   @db.Text
+  variables         Json     @default("[]")
+  safetyChecks      Json     @default("[]")
+  acceptanceCriteria Json    @default("{}")
+  version           String   @default("1.0")
+  isActive          Boolean  @default(true)
+  usage_count       Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  
+  calibrationRecords CalibrationRecord[]
+  complianceReports  ComplianceReport[]
+  
+  @@map("compliance_templates")
+}
+
+model ComplianceReport {
+  id                String           @id @default(cuid())
+  title             String
+  reportType        ReportType
+  generatedDate     DateTime         @default(now())
+  reportPeriod      Json             @default("{}")
+  data              Json             @default("{}")
+  findings          Json             @default("[]")
+  recommendations   Json             @default("[]")
+  complianceScore   Float?
+  status            ReportStatus     @default(DRAFT)
+  pdfPath           String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  generatedById     String
+  generatedBy       User @relation(fields: [generatedById], references: [id])
+  templateId        String?
+  template          ComplianceTemplate? @relation(fields: [templateId], references: [id])
+  
+  @@map("compliance_reports")
+}
+
+model MaintenanceRecord {
+  id                String              @id @default(cuid())
+  maintenanceType   MaintenanceType
+  scheduledDate     DateTime
+  performedDate     DateTime?
+  description       String
+  partsReplaced     Json                @default("[]")
+  cost              Float?
+  performedBy       String?
+  vendorInformation Json?
+  nextMaintenanceDate DateTime?
+  status            MaintenanceStatus   @default(SCHEDULED)
+  notes             String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  equipmentId       String
+  equipment         Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  @@map("maintenance_records")
+}
+
+model EquipmentOperation {
+  id                String              @id @default(cuid())
+  operationType     OperationType
+  startTime         DateTime
+  endTime           DateTime?
+  parameters        Json                @default("{}")
+  results           Json                @default("{}")
+  qcData            Json                @default("{}")
+  status            OperationStatus     @default(IN_PROGRESS)
+  notes             String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relationships
+  equipmentId       String
+  equipment         Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  operatorId        String
+  operator          User @relation(fields: [operatorId], references: [id])
+  
+  @@map("equipment_operations")
+}
+
+model Subscription {
+  id                String              @id @default(cuid())
+  stripeCustomerId  String              @unique
+  stripeSubscriptionId String?          @unique
+  stripePriceId     String
+  stripeCurrentPeriodEnd DateTime?
+  plan              SubscriptionPlan
+  status            SubscriptionStatus  @default(ACTIVE)
+  usageLimit        Int                 @default(100)
+  currentUsage      Int                 @default(0)
+  billingCycle      BillingCycle       @default(MONTHLY)
+  trialEnd          DateTime?
+  cancelAt          DateTime?
+  canceledAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relationships
+  laboratoryId      String              @unique
+  laboratory        Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  
+  usageRecords      UsageRecord[]
+  
+  @@map("subscriptions")
+}
+
+model UsageRecord {
+  id                String      @id @default(cuid())
+  feature           String
+  quantity          Int         @default(1)
+  cost              Float?
+  metadata          Json        @default("{}")
+  recordedAt        DateTime    @default(now())
+
+  // Relationships
+  subscriptionId    String
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  
+  @@map("usage_records")
+}
+
+model AuditLog {
+  id                String      @id @default(cuid())
+  action            String
+  entityType        String
+  entityId          String
+  oldValues         Json?
+  newValues         Json?
+  ipAddress         String?
+  userAgent         String?
+  timestamp         DateTime    @default(now())
+
+  // Relationships
+  userId            String?
+  user              User?       @relation(fields: [userId], references: [id])
+  
+  @@map("audit_logs")
+}
+
+model Notification {
+  id                String              @id @default(cuid())
+  type              NotificationType
+  title             String
+  message           String              @db.Text
+  isRead            Boolean             @default(false)
+  priority          NotificationPriority @default(NORMAL)
+  scheduledFor      DateTime?
+  sentAt            DateTime?
+  metadata          Json                @default("{}")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relationships
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  TECHNICIAN
+  VIEWER
+}
+
+enum EquipmentType {
+  ANALYTICAL_BALANCE
+  PIPETTE
+  CENTRIFUGE
+  INCUBATOR
+  AUTOCLAVE
+  SPECTROPHOTOMETER
+  PCR_MACHINE
+  MICROSCOPE
+  WATER_BATH
+  REFRIGERATOR
+  FREEZER
+  OTHER
+}
+
+enum EquipmentStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  CALIBRATION_DUE
+  OUT_OF_SERVICE
+  RETIRED
+}
+
+enum CalibrationType {
+  INITIAL
+  PERIODIC
+  AFTER_REPAIR
+  VERIFICATION
+  INTERIM_CHECK
+}
+
+enum CalibrationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+  FAILED
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  CONDITIONAL
+  PENDING
+  UNDER_REVIEW
+}
+
+enum ReportType {
+  EQUIPMENT_SUMMARY
+  CALIBRATION_SUMMARY
+  COMPLIANCE_AUDIT
+  MONTHLY_REPORT
+  QUARTERLY_REPORT
+  ANNUAL_REPORT
+  CUSTOM
+}
+
+enum ReportStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  EMERGENCY
+  UPGRADE
+  CLEANING
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum OperationType {
+  ROUTINE_TEST
+  CALIBRATION_CHECK
+  QUALITY_CONTROL
+  SAMPLE_ANALYSIS
+  MAINTENANCE_TEST
+}
+
+enum OperationStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+  CUSTOM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAST_DUE
+  TRIALING
+  UNPAID
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum NotificationType {
+  CALIBRATION_DUE
+  CALIBRATION_OVERDUE
+  MAINTENANCE_DUE
+  COMPLIANCE_ALERT
+  SYSTEM_NOTIFICATION
+  BILLING_ALERT
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+} 

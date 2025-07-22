@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Generate Prisma client
+      run: cd packages/database && npx prisma generate
+
+    - name: Build applications
+      run: npm run build
+      env:
+        NODE_ENV: production
+
+    - name: Run database migrations
+      run: cd packages/database && npx prisma migrate deploy
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production..."
+        # Add your deployment commands here
+        # Example for Vercel:
+        # npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+        # Example for AWS:
+        # aws s3 sync apps/web/out s3://your-bucket --delete
+        # aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        NODE_ENV: production
+
+    - name: Notify deployment
+      run: |
+        echo "Deployment completed successfully!"
+        # Add notification logic here (Slack, Discord, etc.) 
