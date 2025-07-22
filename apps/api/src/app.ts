@@ -13,6 +13,8 @@ import calibrationRoutes from './routes/calibration.routes'
 import complianceRoutes from './routes/compliance.routes'
 import reportsRoutes from './routes/reports.routes'
 import billingRoutes from './routes/billing.routes'
+import notificationRoutes from './routes/notifications.routes'
+import teamRoutes from './routes/team.routes'
 
 const app = express()
 
@@ -54,6 +56,8 @@ app.use('/api/calibration', authMiddleware, calibrationRoutes)
 app.use('/api/compliance', authMiddleware, complianceRoutes)
 app.use('/api/reports', authMiddleware, reportsRoutes)
 app.use('/api/billing', authMiddleware, billingRoutes)
+app.use('/api/notifications', notificationRoutes)
+app.use('/api/team', teamRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {

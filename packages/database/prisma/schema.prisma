@@ -21,6 +21,14 @@ model User {
   role              UserRole @default(TECHNICIAN)
   isActive          Boolean  @default(true)
   lastLoginAt       DateTime?
+  phone             String?
+  timezone          String   @default("UTC")
+  language          String   @default("en")
+  bio               String?  @db.Text
+  certifications    Json     @default("[]")
+  skills            Json     @default("[]")
+  emergencyContact  Json?    @default("{}")
+  preferences       Json     @default("{}")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   deletedAt         DateTime?
@@ -35,7 +43,17 @@ model User {
   complianceReports      ComplianceReport[]
   auditLogs              AuditLog[]
   notifications          Notification[]
+  notificationHistory    NotificationHistory[]
+  notificationPreference NotificationPreference?
   createdEquipment       Equipment[] @relation("CreatedBy")
+  
+  // Team management
+  invitations            UserInvitation[] @relation("InvitedBy")
+  receivedInvitations    UserInvitation[] @relation("InvitedUser")
+  teamActivities         TeamActivity[]
+  assignments            Assignment[]
+  createdAssignments     Assignment[] @relation("AssignedBy")
+  userProfile            UserProfile?
   
   // Authentication
   accounts          Account[]
@@ -75,270 +93,438 @@ model Session {
 }
 
 model Laboratory {
-  id                String   @id @default(cuid())
-  name              String
-  address           String?
-  phone             String?
-  email             String?
-  licenseNumber     String?
-  capNumber         String?
-  cliaNumber        String?
-  isActive          Boolean  @default(true)
-  settings          Json     @default("{}")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  deletedAt         DateTime?
+  id            String    @id @default(cuid())
+  name          String
+  address       String?
+  phone         String?
+  email         String?
+  licenseNumber String?
+  capNumber     String?
+  cliaNumber    String?
+  isActive      Boolean   @default(true)
+  settings      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   // Relationships
-  users             User[]
-  equipment         Equipment[]
-  complianceTemplates ComplianceTemplate[]
-  complianceReports ComplianceReport[]
-  subscriptions     Subscription[]
-  
+  users                   User[]
+  equipment               Equipment[]
+  complianceTemplates     ComplianceTemplate[]
+  complianceReports       ComplianceReport[]
+  subscriptions           Subscription[]
+  notificationTemplates   NotificationTemplate[]
+  notificationPreferences NotificationPreference[]
+  userInvitations         UserInvitation[]
+  teamActivities          TeamActivity[]
+
   @@map("laboratories")
 }
 
 model Equipment {
-  id                String           @id @default(cuid())
-  name              String
-  model             String
-  serialNumber      String
-  manufacturer      String
-  equipmentType     EquipmentType
-  location          String?
-  installDate       DateTime?
-  warrantyExpiry    DateTime?
-  status            EquipmentStatus  @default(ACTIVE)
-  specifications    Json             @default("{}")
-  maintenanceSchedule Json           @default("{}")
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  deletedAt         DateTime?
+  id                  String          @id @default(cuid())
+  name                String
+  model               String
+  serialNumber        String
+  manufacturer        String
+  equipmentType       EquipmentType
+  location            String?
+  installDate         DateTime?
+  warrantyExpiry      DateTime?
+  status              EquipmentStatus @default(ACTIVE)
+  specifications      Json            @default("{}")
+  maintenanceSchedule Json            @default("{}")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  deletedAt           DateTime?
 
   // Relationships
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  createdById       String
-  createdBy         User @relation("CreatedBy", fields: [createdById], references: [id])
-  
-  calibrationRecords CalibrationRecord[]
-  maintenanceRecords MaintenanceRecord[]
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User       @relation("CreatedBy", fields: [createdById], references: [id])
+
+  calibrationRecords  CalibrationRecord[]
+  maintenanceRecords  MaintenanceRecord[]
   equipmentOperations EquipmentOperation[]
-  
+
   @@unique([laboratoryId, serialNumber])
   @@map("equipment")
 }
 
 model CalibrationRecord {
-  id                String              @id @default(cuid())
-  calibrationType   CalibrationType
-  scheduledDate     DateTime
-  performedDate     DateTime?
-  dueDate           DateTime
-  status            CalibrationStatus   @default(SCHEDULED)
-  results           Json                @default("{}")
-  measurements      Json                @default("{}")
-  environmentalConditions Json          @default("{}")
-  standardsUsed     Json                @default("{}")
-  complianceStatus  ComplianceStatus    @default(PENDING)
-  complianceScore   Float?
-  deviations        Json                @default("[]")
-  correctiveActions Json                @default("[]")
-  certificate       String?
-  notes             String?
-  aiAnalysis        Json?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  deletedAt         DateTime?
+  id                      String            @id @default(cuid())
+  calibrationType         CalibrationType
+  scheduledDate           DateTime
+  performedDate           DateTime?
+  dueDate                 DateTime
+  status                  CalibrationStatus @default(SCHEDULED)
+  results                 Json              @default("{}")
+  measurements            Json              @default("{}")
+  environmentalConditions Json              @default("{}")
+  standardsUsed           Json              @default("{}")
+  complianceStatus        ComplianceStatus  @default(PENDING)
+  complianceScore         Float?
+  deviations              Json              @default("[]")
+  correctiveActions       Json              @default("[]")
+  certificate             String?
+  notes                   String?
+  aiAnalysis              Json?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  deletedAt               DateTime?
 
   // Relationships
-  equipmentId       String
-  equipment         Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  performedById     String?
-  performedBy       User? @relation(fields: [performedById], references: [id])
-  templateId        String?
-  template          ComplianceTemplate? @relation(fields: [templateId], references: [id])
-  
+  equipmentId   String
+  equipment     Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  performedById String?
+  performedBy   User?               @relation(fields: [performedById], references: [id])
+  templateId    String?
+  template      ComplianceTemplate? @relation(fields: [templateId], references: [id])
+
   @@map("calibration_records")
 }
 
 model ComplianceTemplate {
-  id                String   @id @default(cuid())
-  name              String
-  description       String?
-  category          String
-  promptTemplate    String   @db.Text
-  variables         Json     @default("[]")
-  safetyChecks      Json     @default("[]")
-  acceptanceCriteria Json    @default("{}")
-  version           String   @default("1.0")
-  isActive          Boolean  @default(true)
-  usage_count       Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  deletedAt         DateTime?
+  id                 String    @id @default(cuid())
+  name               String
+  description        String?
+  category           String
+  promptTemplate     String    @db.Text
+  variables          Json      @default("[]")
+  safetyChecks       Json      @default("[]")
+  acceptanceCriteria Json      @default("{}")
+  version            String    @default("1.0")
+  isActive           Boolean   @default(true)
+  usage_count        Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
 
   // Relationships
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
   calibrationRecords CalibrationRecord[]
   complianceReports  ComplianceReport[]
-  
+
   @@map("compliance_templates")
 }
 
 model ComplianceReport {
-  id                String           @id @default(cuid())
-  title             String
-  reportType        ReportType
-  generatedDate     DateTime         @default(now())
-  reportPeriod      Json             @default("{}")
-  data              Json             @default("{}")
-  findings          Json             @default("[]")
-  recommendations   Json             @default("[]")
-  complianceScore   Float?
-  status            ReportStatus     @default(DRAFT)
-  pdfPath           String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  deletedAt         DateTime?
+  id              String       @id @default(cuid())
+  title           String
+  reportType      ReportType
+  generatedDate   DateTime     @default(now())
+  reportPeriod    Json         @default("{}")
+  data            Json         @default("{}")
+  findings        Json         @default("[]")
+  recommendations Json         @default("[]")
+  complianceScore Float?
+  status          ReportStatus @default(DRAFT)
+  pdfPath         String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
 
   // Relationships
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  generatedById     String
-  generatedBy       User @relation(fields: [generatedById], references: [id])
-  templateId        String?
-  template          ComplianceTemplate? @relation(fields: [templateId], references: [id])
-  
+  laboratoryId  String
+  laboratory    Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  generatedById String
+  generatedBy   User                @relation(fields: [generatedById], references: [id])
+  templateId    String?
+  template      ComplianceTemplate? @relation(fields: [templateId], references: [id])
+
   @@map("compliance_reports")
 }
 
 model MaintenanceRecord {
-  id                String              @id @default(cuid())
-  maintenanceType   MaintenanceType
-  scheduledDate     DateTime
-  performedDate     DateTime?
-  description       String
-  partsReplaced     Json                @default("[]")
-  cost              Float?
-  performedBy       String?
-  vendorInformation Json?
+  id                  String            @id @default(cuid())
+  maintenanceType     MaintenanceType
+  scheduledDate       DateTime
+  performedDate       DateTime?
+  description         String
+  partsReplaced       Json              @default("[]")
+  cost                Float?
+  performedBy         String?
+  vendorInformation   Json?
   nextMaintenanceDate DateTime?
-  status            MaintenanceStatus   @default(SCHEDULED)
-  notes             String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  deletedAt         DateTime?
+  status              MaintenanceStatus @default(SCHEDULED)
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
 
   // Relationships
-  equipmentId       String
-  equipment         Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
   @@map("maintenance_records")
 }
 
 model EquipmentOperation {
-  id                String              @id @default(cuid())
-  operationType     OperationType
-  startTime         DateTime
-  endTime           DateTime?
-  parameters        Json                @default("{}")
-  results           Json                @default("{}")
-  qcData            Json                @default("{}")
-  status            OperationStatus     @default(IN_PROGRESS)
-  notes             String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id            String          @id @default(cuid())
+  operationType OperationType
+  startTime     DateTime
+  endTime       DateTime?
+  parameters    Json            @default("{}")
+  results       Json            @default("{}")
+  qcData        Json            @default("{}")
+  status        OperationStatus @default(IN_PROGRESS)
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   // Relationships
-  equipmentId       String
-  equipment         Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  operatorId        String
-  operator          User @relation(fields: [operatorId], references: [id])
-  
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  operatorId  String
+  operator    User      @relation(fields: [operatorId], references: [id])
+
   @@map("equipment_operations")
 }
 
 model Subscription {
-  id                String              @id @default(cuid())
-  stripeCustomerId  String              @unique
-  stripeSubscriptionId String?          @unique
-  stripePriceId     String
+  id                     String             @id @default(cuid())
+  stripeCustomerId       String             @unique
+  stripeSubscriptionId   String?            @unique
+  stripePriceId          String
   stripeCurrentPeriodEnd DateTime?
-  plan              SubscriptionPlan
-  status            SubscriptionStatus  @default(ACTIVE)
-  usageLimit        Int                 @default(100)
-  currentUsage      Int                 @default(0)
-  billingCycle      BillingCycle       @default(MONTHLY)
-  trialEnd          DateTime?
-  cancelAt          DateTime?
-  canceledAt        DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  plan                   SubscriptionPlan
+  status                 SubscriptionStatus @default(ACTIVE)
+  usageLimit             Int                @default(100)
+  currentUsage           Int                @default(0)
+  billingCycle           BillingCycle       @default(MONTHLY)
+  trialEnd               DateTime?
+  cancelAt               DateTime?
+  canceledAt             DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   // Relationships
-  laboratoryId      String              @unique
-  laboratory        Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  
-  usageRecords      UsageRecord[]
-  
+  laboratoryId String     @unique
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
+  usageRecords UsageRecord[]
+
   @@map("subscriptions")
 }
 
 model UsageRecord {
-  id                String      @id @default(cuid())
-  feature           String
-  quantity          Int         @default(1)
-  cost              Float?
-  metadata          Json        @default("{}")
-  recordedAt        DateTime    @default(now())
+  id         String   @id @default(cuid())
+  feature    String
+  quantity   Int      @default(1)
+  cost       Float?
+  metadata   Json     @default("{}")
+  recordedAt DateTime @default(now())
 
   // Relationships
-  subscriptionId    String
-  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
   @@map("usage_records")
 }
 
 model AuditLog {
-  id                String      @id @default(cuid())
-  action            String
-  entityType        String
-  entityId          String
-  oldValues         Json?
-  newValues         Json?
-  ipAddress         String?
-  userAgent         String?
-  timestamp         DateTime    @default(now())
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
 
   // Relationships
-  userId            String?
-  user              User?       @relation(fields: [userId], references: [id])
-  
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
   @@map("audit_logs")
 }
 
 model Notification {
-  id                String              @id @default(cuid())
-  type              NotificationType
+  id               String               @id @default(cuid())
+  type             NotificationType
+  title            String
+  message          String               @db.Text
+  isRead           Boolean              @default(false)
+  priority         NotificationPriority @default(NORMAL)
+  scheduledFor     DateTime?
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  failedAt         DateTime?
+  retryCount       Int                  @default(0)
+  maxRetries       Int                  @default(3)
+  deliveryChannels Json                 @default("[]") // ["email", "sms", "in_app", "browser"]
+  deliveryStatus   DeliveryStatus       @default(PENDING)
+  templateId       String?
+  escalationLevel  Int                  @default(0)
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String?
+  metadata         Json                 @default("{}")
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  // Relationships
+  userId  String
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history NotificationHistory[]
+
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id         String           @id @default(cuid())
+  name       String
+  type       NotificationType
+  subject    String
+  body       String           @db.Text
+  htmlBody   String           @db.Text
+  smsBody    String?
+  variables  Json             @default("{}")
+  isActive   Boolean          @default(true)
+  version    Int              @default(1)
+  createdBy  String
+  approvedBy String?
+  approvedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  // Relationships
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
+  @@map("notification_templates")
+}
+
+model NotificationPreference {
+  id                String                @id @default(cuid())
+  userId            String                @unique
+  emailEnabled      Boolean               @default(true)
+  smsEnabled        Boolean               @default(false)
+  inAppEnabled      Boolean               @default(true)
+  browserEnabled    Boolean               @default(true)
+  quietHoursStart   String? // Format: "HH:MM"
+  quietHoursEnd     String? // Format: "HH:MM"
+  timezone          String                @default("UTC")
+  frequency         NotificationFrequency @default(IMMEDIATE)
+  emergencyOverride Boolean               @default(true)
+  preferences       Json                  @default("{}") // Per-type preferences
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  // Relationships
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Laboratory   Laboratory? @relation(fields: [laboratoryId], references: [id])
+  laboratoryId String?
+
+  @@map("notification_preferences")
+}
+
+model NotificationHistory {
+  id             String             @id @default(cuid())
+  notificationId String
+  action         NotificationAction
+  performedBy    String?
+  performedAt    DateTime           @default(now())
+  metadata       Json               @default("{}")
+
+  // Relationships
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  User         User?        @relation(fields: [userId], references: [id])
+  userId       String?
+
+  @@map("notification_history")
+}
+
+model UserInvitation {
+  id                String   @id @default(cuid())
+  email             String
+  role              UserRole
+  message           String?  @db.Text
+  status            InvitationStatus @default(PENDING)
+  expiresAt         DateTime
+  acceptedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  invitedById       String
+  invitedBy         User @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedUserId     String?
+  invitedUser       User? @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
+
+  @@map("user_invitations")
+}
+
+model UserProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  title             String?
+  department        String?
+  location          String?
+  employeeId        String?
+  hireDate          DateTime?
+  supervisorId      String?
+  workSchedule      Json     @default("{}")
+  availability      Json     @default("{}")
+  performance       Json     @default("{}")
+  goals             Json     @default("[]")
+  achievements      Json     @default("[]")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model TeamActivity {
+  id                String   @id @default(cuid())
+  type              TeamActivityType
   title             String
-  message           String              @db.Text
-  isRead            Boolean             @default(false)
-  priority          NotificationPriority @default(NORMAL)
-  scheduledFor      DateTime?
-  sentAt            DateTime?
-  metadata          Json                @default("{}")
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  description       String?  @db.Text
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now())
 
   // Relationships
   userId            String
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("notifications")
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
+  @@map("team_activities")
+}
+
+model Assignment {
+  id                String   @id @default(cuid())
+  title             String
+  description       String?  @db.Text
+  type              AssignmentType
+  priority          AssignmentPriority @default(NORMAL)
+  status            AssignmentStatus @default(PENDING)
+  dueDate           DateTime?
+  completedAt       DateTime?
+  estimatedHours    Float?
+  actualHours       Float?
+  notes             String?  @db.Text
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  assignedToId      String
+  assignedTo        User @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  assignedById      String
+  assignedBy        User @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
+  @@map("assignments")
 }
 
 // Enums
@@ -347,6 +533,14 @@ enum UserRole {
   SUPERVISOR
   TECHNICIAN
   VIEWER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
 }
 
 enum EquipmentType {
@@ -477,6 +671,12 @@ enum NotificationType {
   COMPLIANCE_ALERT
   SYSTEM_NOTIFICATION
   BILLING_ALERT
+  TEAM_ACTIVITY
+  EQUIPMENT_FAILURE
+  REPORT_GENERATED
+  USER_INVITATION
+  ROLE_CHANGE
+  SUBSCRIPTION_ALERT
 }
 
 enum NotificationPriority {
@@ -484,4 +684,72 @@ enum NotificationPriority {
   NORMAL
   HIGH
   CRITICAL
-} 
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+  UNSUBSCRIBED
+}
+
+enum NotificationFrequency {
+  IMMEDIATE
+  DAILY_DIGEST
+  WEEKLY_DIGEST
+  NEVER
+}
+
+enum NotificationAction {
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  BOUNCED
+  UNSUBSCRIBED
+  MARKED_READ
+  MARKED_UNREAD
+  DELETED
+}
+
+enum TeamActivityType {
+  CALIBRATION_COMPLETED
+  EQUIPMENT_ADDED
+  REPORT_GENERATED
+  USER_JOINED
+  USER_LEFT
+  ASSIGNMENT_CREATED
+  ASSIGNMENT_COMPLETED
+  COMPLIANCE_ALERT
+  MAINTENANCE_SCHEDULED
+  TRAINING_COMPLETED
+}
+
+enum AssignmentType {
+  CALIBRATION
+  MAINTENANCE
+  TRAINING
+  AUDIT
+  REPORT
+  INSPECTION
+  REPAIR
+  VERIFICATION
+}
+
+enum AssignmentPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}

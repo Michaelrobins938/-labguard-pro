@@ -23,13 +23,14 @@ const navigation = [
   { name: 'Calibrations', href: '/dashboard/calibrations', icon: CheckCircle },
   { name: 'Due Soon', href: '/dashboard/calibrations/due', icon: Clock },
   { name: 'Overdue', href: '/dashboard/calibrations/overdue', icon: AlertTriangle },
+  { name: 'Team', href: '/dashboard/team', icon: Users },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Compliance', href: '/dashboard/reports/compliance', icon: CheckCircle },
   { name: 'Equipment Analytics', href: '/dashboard/reports/equipment', icon: BarChart3 },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Team', href: '/dashboard/team', icon: Users },
-  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
 ]
 
 export function DashboardSidebar() {
@@ -96,6 +97,20 @@ export function DashboardSidebar() {
             >
               <Settings className="w-4 h-4 mr-2" />
               Add Equipment
+            </Link>
+            <Link
+              href="/dashboard/team/invite"
+              className="flex items-center text-sm text-gray-700 hover:text-blue-600"
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Invite Team Member
+            </Link>
+            <Link
+              href="/dashboard/notifications"
+              className="flex items-center text-sm text-gray-700 hover:text-blue-600"
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              View Notifications
             </Link>
           </div>
         </div>
