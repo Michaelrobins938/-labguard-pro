@@ -1,32 +1,88 @@
-# 🧬 LabGuard Pro - Enterprise Laboratory Compliance Platform
+# LabGuard Pro - Laboratory Compliance Automation Platform
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Michaelrobins938/labguard-pro)
+A comprehensive, enterprise-grade laboratory management system designed to streamline equipment calibration, compliance tracking, and laboratory operations.
 
-## 🎯 Overview
+## 🚀 Live Demo
 
-LabGuard Pro is an enterprise-grade laboratory compliance automation platform that helps laboratories manage equipment calibrations, pass CAP/CLIA audits, and prevent costly equipment failures with AI-powered compliance validation.
+**Deployed on Vercel:** [LabGuard Pro Platform](https://labguard-pro.vercel.app)
 
-## ✨ Key Features
+## ✨ Features
 
-- **🔬 Equipment Tracking & Management** - Comprehensive equipment lifecycle management
-- **🤖 AI-Powered Compliance Validation** - Automated audit preparation and validation
-- **📊 Real-time Dashboard** - Live equipment status and compliance monitoring
-- **📋 Automated Reporting** - Generate compliance reports automatically
-- **🔔 Smart Notifications** - Proactive alerts for calibration due dates
-- **🏥 Enterprise Security** - SOC 2 Type II, HIPAA, CAP, CLIA compliant
+### Core Laboratory Management
+- **Equipment Management** - Complete lifecycle tracking with QR codes and labels
+- **Calibration Scheduling** - Automated scheduling with AI-powered validation
+- **Compliance Reporting** - Real-time compliance monitoring and reporting
+- **Team Collaboration** - Role-based access control and team management
+
+### Advanced Features (Phase 3)
+- **Enterprise Analytics** - Business intelligence with predictive insights
+- **Bulk Operations** - File-based batch processing for equipment and data
+- **Data Management** - Import/export center with multiple format support
+- **LIMS Integration** - Laboratory Information Management System connections
+- **API Management** - RESTful API with key management and usage monitoring
+- **Automation Workflows** - Custom workflow creation and management
+- **Global Search** - Advanced search across all data types
+- **System Administration** - Complete system management and monitoring
+
+### Billing & Subscription
+- **Subscription Management** - Flexible billing plans and usage tracking
+- **Payment Processing** - Secure payment method management
+- **Usage Analytics** - Detailed usage reporting and analytics
+- **Invoice Management** - Automated invoice generation and tracking
+
+## 🛠 Tech Stack
+
+### Frontend
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide React** - Beautiful icons
+- **React Hooks** - State management
+
+### Backend
+- **Express.js** - Node.js web framework
+- **Prisma** - Database ORM
+- **PostgreSQL** - Primary database
+- **JWT** - Authentication
+- **Node.js** - Runtime environment
+
+### Infrastructure
+- **Vercel** - Frontend deployment
+- **GitHub** - Version control
+- **Docker** - Containerization
+- **Turbo** - Monorepo build system
+
+## 📦 Project Structure
+
+```
+products/
+├── apps/
+│   ├── web/                 # Next.js frontend application
+│   │   ├── src/app/         # App Router pages
+│   │   ├── src/components/  # React components
+│   │   └── src/lib/         # Utilities and helpers
+│   └── api/                 # Express.js backend API
+│       ├── src/controllers/ # API controllers
+│       ├── src/routes/      # API routes
+│       └── src/middleware/  # Express middleware
+├── packages/
+│   ├── database/            # Database schema and migrations
+│   └── shared/              # Shared utilities and types
+└── backend/                 # Legacy backend (deprecated)
+```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ 
-- npm or yarn
+- npm 9+
 - PostgreSQL database
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Michaelrobins938/labguard-pro.git
+   git clone https://github.com/Michaelrobins938/-labguard-pro.git
    cd labguard-pro
    ```
 
@@ -38,12 +94,14 @@ LabGuard Pro is an enterprise-grade laboratory compliance automation platform th
 3. **Set up environment variables**
    ```bash
    cp env.example .env
-   cp apps/web/env.local.example apps/web/.env.local
+   # Edit .env with your configuration
    ```
 
-4. **Generate Prisma client**
+4. **Set up the database**
    ```bash
    npm run db:generate
+   npm run db:migrate
+   npm run db:seed
    ```
 
 5. **Start development servers**
@@ -51,113 +109,118 @@ LabGuard Pro is an enterprise-grade laboratory compliance automation platform th
    npm run dev
    ```
 
-6. **Open your browser**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:3001
+### Development Commands
 
-## 🏗️ Architecture
+```bash
+# Start all services
+npm run dev
 
+# Start frontend only
+npm run dev:frontend
+
+# Start backend only
+npm run dev:backend
+
+# Build for production
+npm run build
+
+# Run tests
+npm run test
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
 ```
-labguard-pro/
-├── apps/
-│   ├── web/          # Next.js frontend application
-│   └── api/          # Express.js backend API
-├── backend/          # Legacy backend (being migrated)
-├── packages/
-│   ├── database/     # Prisma database schema
-│   └── shared/       # Shared utilities and types
-└── docs/            # Documentation
-```
 
-## 🎨 Design System
+## 🌐 Deployment
 
-LabGuard Pro follows enterprise-grade design principles:
+### Vercel Deployment (Recommended)
 
-- **Peter Morville's 7 UX Principles** - Useful, Desirable, Accessible, Credible, Findable, Usable, Valuable
-- **Z-Pattern Layout** - Optimized for natural eye movement
-- **6-3-1 Color Rule** - 60% grays/whites, 30% blues, 10% green accents
-- **Professional Typography** - Inter font family for readability
+1. **Connect to Vercel**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Import your GitHub repository
+   - Configure environment variables
 
-## 🔒 Security & Compliance
+2. **Environment Variables**
+   ```env
+   DATABASE_URL=your_postgresql_connection_string
+   JWT_SECRET=your_jwt_secret
+   API_BASE_URL=your_backend_api_url
+   ```
 
-- **SOC 2 Type II Certified**
-- **HIPAA Compliant**
-- **CAP Approved**
-- **CLIA Validated**
-- **ISO 15189 Certified**
-- **GDPR Ready**
-
-## 📈 Performance Metrics
-
-- **99.9% Audit Pass Rate** for customers
-- **$50K+ Annual Savings** per laboratory
-- **500+ Laboratories** trust LabGuard Pro
-- **24/7 Enterprise Support**
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first styling
-- **Radix UI** - Accessible component primitives
-- **Framer Motion** - Smooth animations
-
-### Backend
-- **Express.js** - Node.js web framework
-- **Prisma** - Database ORM
-- **PostgreSQL** - Primary database
-- **JWT** - Authentication
-- **OpenAI API** - AI-powered compliance validation
-
-### DevOps
-- **Vercel** - Frontend deployment
-- **GitHub Actions** - CI/CD pipeline
-- **Docker** - Containerization
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-
-1. **Connect your GitHub repository to Vercel**
-2. **Set environment variables** in Vercel dashboard
-3. **Deploy automatically** on every push to main branch
+3. **Deploy**
+   - Vercel will automatically deploy on push to master
+   - Custom domain can be configured in Vercel dashboard
 
 ### Manual Deployment
 
-```bash
-# Build the application
-npm run build
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
 
-# Deploy to your preferred hosting platform
-```
+2. **Deploy to your preferred hosting service**
+   - Frontend: Deploy `apps/web` to Vercel, Netlify, or similar
+   - Backend: Deploy `apps/api` to Railway, Heroku, or similar
 
-## 📝 Environment Variables
+## 📊 Features Overview
 
-### Required Variables
-```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/labguard_pro"
+### Dashboard
+- Real-time equipment status
+- Calibration due dates
+- Compliance score tracking
+- Quick action buttons
 
-# JWT
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
+### Equipment Management
+- Equipment registration and tracking
+- QR code generation
+- Maintenance scheduling
+- Calibration history
+- Document management
 
-# OpenAI
-OPENAI_API_KEY="your-openai-api-key"
+### Calibration System
+- Automated scheduling
+- AI-powered validation
+- Result tracking
+- Compliance reporting
 
-# Stripe
-STRIPE_SECRET_KEY="sk_test_your-stripe-secret-key"
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_your-stripe-publishable-key"
-```
+### Enterprise Analytics
+- Revenue tracking
+- User engagement metrics
+- System performance monitoring
+- Predictive insights
+
+### System Administration
+- User management
+- Security monitoring
+- Backup management
+- System health tracking
+
+## 🔐 Security
+
+- JWT-based authentication
+- Role-based access control
+- Secure API endpoints
+- Data encryption
+- Audit logging
+
+## 📈 Performance
+
+- Server-side rendering with Next.js
+- Optimized bundle sizes
+- CDN integration
+- Database query optimization
+- Caching strategies
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
@@ -165,20 +228,26 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: [docs.labguardpro.com](https://docs.labguardpro.com)
-- **Email**: support@labguardpro.com
-- **Phone**: 1-800-LABGUARD
+For support and questions:
+- Create an issue on GitHub
+- Contact the development team
+- Check the documentation
 
-## 🏆 Enterprise Features
+## 🗺 Roadmap
 
-- **Multi-tenant Architecture** - Support for multiple laboratories
-- **Role-based Access Control** - Admin, Supervisor, Technician roles
-- **Audit Trail** - Complete activity logging
-- **API Integration** - RESTful API for third-party integrations
-- **White-label Options** - Custom branding for enterprise clients
+### Phase 4 (Planned)
+- Mobile application
+- Advanced AI features
+- Multi-tenant architecture
+- Advanced reporting
+- Third-party integrations
+
+### Phase 5 (Future)
+- IoT device integration
+- Machine learning predictions
+- Advanced automation
+- Global deployment
 
 ---
 
-**Built with ❤️ for laboratory professionals worldwide**
-
-*LabGuard Pro - Transforming laboratory compliance through intelligent automation* 
+**LabGuard Pro** - Streamlining laboratory compliance and operations with modern technology. 
