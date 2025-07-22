@@ -61,7 +61,7 @@ export function DashboardSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 bg-white shadow-lg min-h-screen">
+    <div className="w-64 bg-white shadow-lg min-h-screen border-r border-gray-200">
       <div className="p-6">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
