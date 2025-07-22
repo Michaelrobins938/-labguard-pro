@@ -7,16 +7,19 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_your-stripe-publishable-key',
   },
-  // Temporarily disable rewrites to see if they're causing the 404
-  // async rewrites() {
-  //   const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001/api'
-  //   return [
-  //     {
-  //       source: '/api/:path*',
-  //       destination: `${apiBaseUrl}/:path*`,
-  //     },
-  //   ]
-  // },
+  experimental: {
+    appDir: true,
+  },
+  trailingSlash: false,
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig 

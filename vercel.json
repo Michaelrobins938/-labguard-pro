@@ -10,5 +10,25 @@
   },
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/dashboard/(.*)",
+      "destination": "/dashboard"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "/admin"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/dashboard",
+      "dest": "/dashboard"
+    },
+    {
+      "src": "/admin",
+      "dest": "/admin"
+    }
+  ]
 } 
