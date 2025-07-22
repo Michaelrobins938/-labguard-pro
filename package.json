@@ -4,15 +4,16 @@
   "description": "Laboratory Compliance Automation Platform",
   "private": true,
   "workspaces": [
-    "frontend",
+    "apps/web",
+    "apps/api",
     "backend"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:frontend": "npm run dev --workspace=apps/web",
     "dev:backend": "npm run dev --workspace=backend",
     "build": "npm run build --workspaces",
-    "build:frontend": "npm run build --workspace=frontend",
+    "build:frontend": "npm run build --workspace=apps/web",
     "build:backend": "npm run build --workspace=backend",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
