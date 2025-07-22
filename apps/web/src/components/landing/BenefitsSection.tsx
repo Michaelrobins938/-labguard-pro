@@ -1,42 +1,60 @@
-import { Clock, DollarSign, Shield, TrendingUp, Users, Zap } from 'lucide-react'
+import { Clock, DollarSign, Shield, TrendingUp, Users, Zap, BarChart3, Database, Upload, Key, Server } from 'lucide-react'
 
 export function BenefitsSection() {
   const benefits = [
     {
-      icon: Clock,
-      title: 'Save 10+ Hours Weekly',
-      description: 'Automate manual compliance tasks and free up technicians for actual testing work.',
-      metric: '15 hours saved per week on average'
+      icon: BarChart3,
+      title: 'Enterprise Analytics',
+      description: 'Business intelligence with predictive insights, revenue tracking, and comprehensive performance metrics.',
+      metric: 'Real-time business intelligence'
     },
     {
-      icon: DollarSign,
-      title: 'Prevent $50K+ in Failures',
-      description: 'AI-powered early detection prevents equipment failures and costly re-work.',
-      metric: '$50K average annual savings'
+      icon: Upload,
+      title: 'Bulk Operations',
+      description: 'File-based batch processing for equipment, calibrations, and data with predefined templates.',
+      metric: 'Process 1000+ records in minutes'
     },
     {
-      icon: Shield,
-      title: '99.9% Compliance Rate',
-      description: 'Never fail a CAP audit again with automated compliance checking.',
-      metric: '99.9% compliance rate achieved'
+      icon: Database,
+      title: 'Data Management',
+      description: 'Import/export center supporting CSV, Excel, JSON formats with comprehensive data validation.',
+      metric: 'Multiple format support'
     },
     {
-      icon: TrendingUp,
-      title: '40% Efficiency Boost',
-      description: 'Streamlined workflows and automated processes improve overall lab efficiency.',
-      metric: '40% improvement in lab efficiency'
+      icon: Server,
+      title: 'LIMS Integration',
+      description: 'Connect to Laboratory Information Management Systems with real-time data synchronization.',
+      metric: 'Seamless system integration'
     },
     {
-      icon: Users,
-      title: 'Reduce Technician Stress',
-      description: 'Eliminate compliance anxiety and focus on meaningful scientific work.',
-      metric: '85% reduction in compliance stress'
+      icon: Key,
+      title: 'API Management',
+      description: 'RESTful API with key management, usage monitoring, and comprehensive documentation.',
+      metric: 'Full API access & control'
     },
     {
       icon: Zap,
-      title: 'Instant CAP Reports',
-      description: 'Generate audit-ready documentation with one click, anytime.',
-      metric: 'Reports generated in under 30 seconds'
+      title: 'Workflow Automation',
+      description: 'Custom workflow creation and management with trigger-based automation and monitoring.',
+      metric: 'Automated compliance workflows'
+    },
+    {
+      icon: Shield,
+      title: 'System Administration',
+      description: 'Complete system management, user administration, security monitoring, and backup management.',
+      metric: 'Enterprise-grade security'
+    },
+    {
+      icon: Clock,
+      title: 'AI-Powered Calibrations',
+      description: 'Smart scheduling with AI validation, automated reminders, and comprehensive compliance tracking.',
+      metric: '99.9% compliance rate'
+    },
+    {
+      icon: Users,
+      title: 'Team Collaboration',
+      description: 'Role-based access control, team management, and seamless collaboration across your laboratory.',
+      metric: 'Multi-user platform'
     }
   ]
 
@@ -46,17 +64,17 @@ export function BenefitsSection() {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            Proven <span className="text-blue-600">Results</span> for Laboratories
+            Complete <span className="text-blue-600">Platform</span> for Modern Laboratories
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Join hundreds of laboratories already experiencing dramatic improvements in compliance, efficiency, and cost savings.
+            From basic equipment tracking to advanced enterprise analytics, LabGuard Pro provides everything you need for modern laboratory operations.
           </p>
         </div>
 
         {/* Benefits Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {benefits.map((benefit, index) => (
-            <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+            <div key={index} className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:shadow-lg transition-shadow duration-300">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
                 <benefit.icon className="w-6 h-6 text-blue-600" />
               </div>
@@ -79,23 +97,23 @@ export function BenefitsSection() {
         </div>
 
         {/* Bottom Stats */}
-        <div className="mt-16 bg-blue-600 rounded-2xl p-8 text-white">
+        <div className="mt-16 bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl p-8 text-white">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold mb-2">500+</div>
-              <div className="text-blue-100">Laboratories</div>
+              <div className="text-3xl font-bold mb-2">15+</div>
+              <div className="text-blue-100">Advanced Features</div>
             </div>
             <div>
-              <div className="text-3xl font-bold mb-2">$2.5M</div>
-              <div className="text-blue-100">Total Savings</div>
+              <div className="text-3xl font-bold mb-2">100%</div>
+              <div className="text-blue-100">Platform Complete</div>
             </div>
             <div>
-              <div className="text-3xl font-bold mb-2">99.9%</div>
-              <div className="text-blue-100">Compliance Rate</div>
+              <div className="text-3xl font-bold mb-2">Phase 3</div>
+              <div className="text-blue-100">Enterprise Ready</div>
             </div>
             <div>
-              <div className="text-3xl font-bold mb-2">10,000+</div>
-              <div className="text-blue-100">Equipment Monitored</div>
+              <div className="text-3xl font-bold mb-2">24/7</div>
+              <div className="text-blue-100">Demo Access</div>
             </div>
           </div>
         </div>
