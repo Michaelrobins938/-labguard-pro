@@ -7,12 +7,14 @@ import { PricingSection } from '@/components/landing/PricingSection'
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection'
 import { CTASection } from '@/components/landing/CTASection'
 import { Footer } from '@/components/landing/Footer'
+import { TrustSignalsSection } from '@/components/landing/TrustSignalsSection'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       <Navigation />
       <HeroSection />
+      <TrustSignalsSection />
       <FeaturesSection />
       <PricingSection />
       <TestimonialsSection />
