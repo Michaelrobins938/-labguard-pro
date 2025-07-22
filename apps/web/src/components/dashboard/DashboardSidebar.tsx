@@ -22,7 +22,9 @@ import {
   Key,
   Upload,
   Download,
-  Server
+  Server,
+  Brain,
+  Eye
 } from 'lucide-react'
 
 const navigation = [
@@ -43,6 +45,8 @@ const navigation = [
   { name: 'LIMS Integration', href: '/dashboard/integrations/lims', icon: Server },
   { name: 'API Management', href: '/dashboard/api', icon: Key },
   { name: 'Automation', href: '/dashboard/automation', icon: Zap },
+  { name: 'AI Predictive Maintenance', href: '/dashboard/ai/predictive-maintenance', icon: Brain },
+  { name: 'AI Anomaly Detection', href: '/dashboard/ai/anomaly-detection', icon: Eye },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
