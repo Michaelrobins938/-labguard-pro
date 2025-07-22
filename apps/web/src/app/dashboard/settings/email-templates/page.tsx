@@ -377,12 +377,12 @@ export default function EmailTemplatesPage() {
               <div className="bg-gray-50 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-gray-900 mb-2">Available Variables</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <code className="bg-white px-2 py-1 rounded border">{{userName}}</code>
-                  <code className="bg-white px-2 py-1 rounded border">{{equipmentName}}</code>
-                  <code className="bg-white px-2 py-1 rounded border">{{dueDate}}</code>
-                  <code className="bg-white px-2 py-1 rounded border">{{laboratoryName}}</code>
-                  <code className="bg-white px-2 py-1 rounded border">{{calibrationType}}</code>
-                  <code className="bg-white px-2 py-1 rounded border">{{priority}}</code>
+                  <code className="bg-white px-2 py-1 rounded border">{'{{userName}}'}</code>
+                  <code className="bg-white px-2 py-1 rounded border">{'{{equipmentName}}'}</code>
+                  <code className="bg-white px-2 py-1 rounded border">{'{{dueDate}}'}</code>
+                  <code className="bg-white px-2 py-1 rounded border">{'{{laboratoryName}}'}</code>
+                  <code className="bg-white px-2 py-1 rounded border">{'{{calibrationType}}'}</code>
+                  <code className="bg-white px-2 py-1 rounded border">{'{{priority}}'}</code>
                 </div>
               </div>
 
