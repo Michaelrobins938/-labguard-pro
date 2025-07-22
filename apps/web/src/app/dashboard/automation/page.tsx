@@ -5,7 +5,7 @@ import {
   Zap, 
   Play, 
   Pause, 
-  Stop, 
+  Square, 
   Plus, 
   Edit, 
   Trash2, 
