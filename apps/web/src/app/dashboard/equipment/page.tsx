@@ -39,70 +39,116 @@ export default function EquipmentPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock data - replace with API call
+  // Fetch equipment data from API
   useEffect(() => {
-    const mockEquipment: Equipment[] = [
-      {
-        id: '1',
-        name: 'Analytical Balance AB-001',
-        model: 'Sartorius ME36S',
-        serialNumber: 'AB-001',
-        manufacturer: 'Sartorius',
-        equipmentType: 'ANALYTICAL_BALANCE',
-        location: 'Lab A - Room 101',
-        status: 'ACTIVE',
-        lastCalibration: '2024-01-15T10:30:00Z',
-        nextCalibration: '2024-02-15T10:30:00Z',
-        complianceStatus: 'COMPLIANT',
-        complianceScore: 96.2
-      },
-      {
-        id: '2',
-        name: 'Centrifuge CF-003',
-        model: 'Eppendorf 5810R',
-        serialNumber: 'CF-003',
-        manufacturer: 'Eppendorf',
-        equipmentType: 'CENTRIFUGE',
-        location: 'Lab B - Room 102',
-        status: 'ACTIVE',
-        lastCalibration: '2024-01-20T14:15:00Z',
-        nextCalibration: '2024-02-20T14:15:00Z',
-        complianceStatus: 'COMPLIANT',
-        complianceScore: 92.1
-      },
-      {
-        id: '3',
-        name: 'pH Meter PH-002',
-        model: 'Thermo Scientific Orion',
-        serialNumber: 'PH-002',
-        manufacturer: 'Thermo Scientific',
-        equipmentType: 'OTHER',
-        location: 'Lab A - Room 101',
-        status: 'ACTIVE',
-        lastCalibration: '2024-01-10T09:00:00Z',
-        nextCalibration: '2024-02-10T09:00:00Z',
-        complianceStatus: 'WARNING',
-        complianceScore: 88.5
-      },
-      {
-        id: '4',
-        name: 'Microscope MS-005',
-        model: 'Olympus BX53',
-        serialNumber: 'MS-005',
-        manufacturer: 'Olympus',
-        equipmentType: 'MICROSCOPE',
-        location: 'Lab C - Room 103',
-        status: 'MAINTENANCE',
-        lastCalibration: '2024-01-05T11:00:00Z',
-        nextCalibration: '2024-02-05T11:00:00Z',
-        complianceStatus: 'OVERDUE',
-        complianceScore: 75.2
-      }
-    ]
+    const fetchEquipment = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch('/api/equipment', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
 
-    setEquipment(mockEquipment)
-    setLoading(false)
+        if (!response.ok) {
+          throw new Error('Failed to fetch equipment data')
+        }
+
+        const data = await response.json()
+        
+        // Transform API data to match our interface
+        const transformedEquipment = data.data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          model: item.model,
+          serialNumber: item.serialNumber,
+          manufacturer: item.manufacturer,
+          equipmentType: item.equipmentType,
+          location: item.location || 'Not specified',
+          status: item.status,
+          lastCalibration: item.calibrationRecords?.[0]?.performedDate || null,
+          nextCalibration: item.calibrationRecords?.[0]?.dueDate || null,
+          complianceStatus: item.calibrationRecords?.[0]?.complianceStatus || 'PENDING',
+          complianceScore: item.calibrationRecords?.[0]?.complianceScore || 0
+        }))
+
+        setEquipment(transformedEquipment)
+      } catch (err) {
+        console.error('Error fetching equipment:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch equipment data')
+        
+        // Fallback to mock data for development
+        const mockEquipment: Equipment[] = [
+          {
+            id: '1',
+            name: 'Analytical Balance AB-001',
+            model: 'Sartorius ME36S',
+            serialNumber: 'AB-001',
+            manufacturer: 'Sartorius',
+            equipmentType: 'ANALYTICAL_BALANCE',
+            location: 'Lab A - Room 101',
+            status: 'ACTIVE',
+            lastCalibration: '2024-01-15T10:30:00Z',
+            nextCalibration: '2024-02-15T10:30:00Z',
+            complianceStatus: 'COMPLIANT',
+            complianceScore: 96.2
+          },
+          {
+            id: '2',
+            name: 'Centrifuge CF-003',
+            model: 'Eppendorf 5810R',
+            serialNumber: 'CF-003',
+            manufacturer: 'Eppendorf',
+            equipmentType: 'CENTRIFUGE',
+            location: 'Lab B - Room 102',
+            status: 'ACTIVE',
+            lastCalibration: '2024-01-20T14:15:00Z',
+            nextCalibration: '2024-02-20T14:15:00Z',
+            complianceStatus: 'COMPLIANT',
+            complianceScore: 92.1
+          },
+          {
+            id: '3',
+            name: 'pH Meter PH-002',
+            model: 'Thermo Scientific Orion',
+            serialNumber: 'PH-002',
+            manufacturer: 'Thermo Scientific',
+            equipmentType: 'OTHER',
+            location: 'Lab A - Room 101',
+            status: 'ACTIVE',
+            lastCalibration: '2024-01-10T09:00:00Z',
+            nextCalibration: '2024-02-10T09:00:00Z',
+            complianceStatus: 'WARNING',
+            complianceScore: 88.5
+          },
+          {
+            id: '4',
+            name: 'Microscope MS-005',
+            model: 'Olympus BX53',
+            serialNumber: 'MS-005',
+            manufacturer: 'Olympus',
+            equipmentType: 'MICROSCOPE',
+            location: 'Lab C - Room 103',
+            status: 'MAINTENANCE',
+            lastCalibration: '2024-01-05T11:00:00Z',
+            nextCalibration: '2024-02-05T11:00:00Z',
+            complianceStatus: 'OVERDUE',
+            complianceScore: 75.2
+          }
+        ]
+        setEquipment(mockEquipment)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchEquipment()
   }, [])
 
   const getStatusColor = (status: string) => {
@@ -186,6 +232,13 @@ export default function EquipmentPage() {
               <p className="text-gray-600 mt-2">
                 Manage laboratory equipment, track calibrations, and monitor compliance
               </p>
+              {error && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    {error} - Using demo data for preview
+                  </p>
+                </div>
+              )}
             </div>
             <Link
               href="/dashboard/equipment/new"
@@ -322,14 +375,16 @@ export default function EquipmentPage() {
                 </div>
 
                 {/* Calibration Info */}
-                <div className="mt-3 p-3 bg-blue-50 rounded-md">
-                  <div className="flex items-center text-blue-700">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span className="text-sm">
-                      Next calibration: {new Date(item.nextCalibration).toLocaleDateString()}
-                    </span>
+                {item.nextCalibration && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-md">
+                    <div className="flex items-center text-blue-700">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span className="text-sm">
+                        Next calibration: {new Date(item.nextCalibration).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Actions */}

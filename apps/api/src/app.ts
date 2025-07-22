@@ -15,6 +15,7 @@ import reportsRoutes from './routes/reports.routes'
 import billingRoutes from './routes/billing.routes'
 import notificationRoutes from './routes/notifications.routes'
 import teamRoutes from './routes/team.routes'
+import equipmentDetailRoutes from './routes/equipment-detail.routes'
 
 const app = express()
 
@@ -58,6 +59,7 @@ app.use('/api/reports', authMiddleware, reportsRoutes)
 app.use('/api/billing', authMiddleware, billingRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/team', teamRoutes)
+app.use('/api/equipment-detail', equipmentDetailRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {

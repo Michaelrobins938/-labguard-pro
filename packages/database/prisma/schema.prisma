@@ -12,52 +12,51 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  emailVerified     DateTime?
-  name              String?
-  image             String?
-  hashedPassword    String?
-  role              UserRole @default(TECHNICIAN)
-  isActive          Boolean  @default(true)
-  lastLoginAt       DateTime?
-  phone             String?
-  timezone          String   @default("UTC")
-  language          String   @default("en")
-  bio               String?  @db.Text
-  certifications    Json     @default("[]")
-  skills            Json     @default("[]")
-  emergencyContact  Json?    @default("{}")
-  preferences       Json     @default("{}")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  deletedAt         DateTime?
+  id               String    @id @default(cuid())
+  email            String    @unique
+  emailVerified    DateTime?
+  name             String?
+  image            String?
+  hashedPassword   String?
+  role             UserRole  @default(TECHNICIAN)
+  isActive         Boolean   @default(true)
+  lastLoginAt      DateTime?
+  phone            String?
+  timezone         String    @default("UTC")
+  language         String    @default("en")
+  bio              String?   @db.Text
+  certifications   Json      @default("[]")
+  skills           Json      @default("[]")
+  emergencyContact Json?     @default("{}")
+  preferences      Json      @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
 
   // Relationships
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
   // User activities
   equipmentOperations    EquipmentOperation[]
   calibrationRecords     CalibrationRecord[]
   complianceReports      ComplianceReport[]
-  auditLogs              AuditLog[]
   notifications          Notification[]
   notificationHistory    NotificationHistory[]
   notificationPreference NotificationPreference?
-  createdEquipment       Equipment[] @relation("CreatedBy")
-  
+  createdEquipment       Equipment[]             @relation("CreatedBy")
+
   // Team management
-  invitations            UserInvitation[] @relation("InvitedBy")
-  receivedInvitations    UserInvitation[] @relation("InvitedUser")
-  teamActivities         TeamActivity[]
-  assignments            Assignment[]
-  createdAssignments     Assignment[] @relation("AssignedBy")
-  userProfile            UserProfile?
-  
+  invitations         UserInvitation[] @relation("InvitedBy")
+  receivedInvitations UserInvitation[] @relation("InvitedUser")
+  teamActivities      TeamActivity[]
+  assignments         Assignment[]
+  createdAssignments  Assignment[]     @relation("AssignedBy")
+  userProfile         UserProfile?
+
   // Authentication
-  accounts          Account[]
-  sessions          Session[]
+  accounts Account[]
+  sessions Session[]
 
   @@map("users")
 }
@@ -93,30 +92,34 @@ model Session {
 }
 
 model Laboratory {
-  id            String    @id @default(cuid())
-  name          String
-  address       String?
-  phone         String?
-  email         String?
-  licenseNumber String?
-  capNumber     String?
-  cliaNumber    String?
-  isActive      Boolean   @default(true)
-  settings      Json      @default("{}")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  settings    Json     @default("{}")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relationships
   users                   User[]
   equipment               Equipment[]
-  complianceTemplates     ComplianceTemplate[]
+  calibrations            CalibrationRecord[]
   complianceReports       ComplianceReport[]
-  subscriptions           Subscription[]
   notificationTemplates   NotificationTemplate[]
   notificationPreferences NotificationPreference[]
   userInvitations         UserInvitation[]
   teamActivities          TeamActivity[]
+  subscriptions           Subscription[]
+  invoices                Invoice[]
+  paymentMethods          PaymentMethod[]
+  billingEvents           BillingEvent[]
+  billingSettings         BillingSettings?
+  ComplianceTemplate      ComplianceTemplate[]
+  Assignment              Assignment[]
 
   @@map("laboratories")
 }
@@ -134,6 +137,23 @@ model Equipment {
   status              EquipmentStatus @default(ACTIVE)
   specifications      Json            @default("{}")
   maintenanceSchedule Json            @default("{}")
+  
+  // Enhanced fields for detail pages
+  description         String?         @db.Text
+  purchaseDate        DateTime?
+  purchasePrice       Float?
+  supplier            String?
+  operatingRange      Json            @default("{}")
+  accuracySpecs       Json            @default("{}")
+  environmentalReqs   Json            @default("{}")
+  calibrationReqs     Json            @default("{}")
+  performanceMetrics  Json            @default("{}")
+  costAnalysis        Json            @default("{}")
+  lifecycleStage      EquipmentLifecycleStage @default(OPERATIONAL)
+  qrCode              String?
+  tags                Json            @default("[]")
+  metadata            Json            @default("{}")
+  
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   deletedAt           DateTime?
@@ -147,9 +167,95 @@ model Equipment {
   calibrationRecords  CalibrationRecord[]
   maintenanceRecords  MaintenanceRecord[]
   equipmentOperations EquipmentOperation[]
-
+  equipmentPhotos     EquipmentPhoto[]
+  equipmentDocuments  EquipmentDocument[]
+  equipmentRelations  EquipmentRelation[]
+  performanceLogs     PerformanceLog[]
+  
   @@unique([laboratoryId, serialNumber])
   @@map("equipment")
+}
+
+model EquipmentPhoto {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  caption     String?
+  category    PhotoCategory
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  
+  @@map("equipment_photos")
+}
+
+model EquipmentDocument {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  title       String
+  description String?  @db.Text
+  category    DocumentCategory
+  version     String   @default("1.0")
+  isApproved  Boolean  @default(false)
+  approvedBy  String?
+  approvedAt  DateTime?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  
+  @@map("equipment_documents")
+}
+
+model EquipmentRelation {
+  id          String   @id @default(cuid())
+  type        RelationType
+  description String?  @db.Text
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  sourceEquipmentId String
+  sourceEquipment   Equipment @relation("SourceEquipment", fields: [sourceEquipmentId], references: [id], onDelete: Cascade)
+  targetEquipmentId String
+  targetEquipment   Equipment @relation("TargetEquipment", fields: [targetEquipmentId], references: [id], onDelete: Cascade)
+  
+  @@map("equipment_relations")
+}
+
+model PerformanceLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime
+  metric      String
+  value       Float
+  unit        String?
+  status      PerformanceStatus @default(NORMAL)
+  notes       String?  @db.Text
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  equipmentId String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  recordedById String?
+  recordedBy   User?    @relation(fields: [recordedById], references: [id])
+  
+  @@map("performance_logs")
 }
 
 model CalibrationRecord {
@@ -181,6 +287,8 @@ model CalibrationRecord {
   performedBy   User?               @relation(fields: [performedById], references: [id])
   templateId    String?
   template      ComplianceTemplate? @relation(fields: [templateId], references: [id])
+  Laboratory    Laboratory?         @relation(fields: [laboratoryId], references: [id])
+  laboratoryId  String?
 
   @@map("calibration_records")
 }
@@ -285,38 +393,137 @@ model EquipmentOperation {
 }
 
 model Subscription {
-  id                     String             @id @default(cuid())
-  stripeCustomerId       String             @unique
-  stripeSubscriptionId   String?            @unique
-  stripePriceId          String
-  stripeCurrentPeriodEnd DateTime?
-  plan                   SubscriptionPlan
-  status                 SubscriptionStatus @default(ACTIVE)
-  usageLimit             Int                @default(100)
-  currentUsage           Int                @default(0)
-  billingCycle           BillingCycle       @default(MONTHLY)
-  trialEnd               DateTime?
-  cancelAt               DateTime?
-  canceledAt             DateTime?
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  id                 String             @id @default(cuid())
+  stripeId           String?            @unique
+  status             SubscriptionStatus @default(ACTIVE)
+  planId             String
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+  endedAt            DateTime?
+  trialStart         DateTime?
+  trialEnd           DateTime?
+  quantity           Int                @default(1)
+  metadata           Json               @default("{}")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   // Relationships
-  laboratoryId String     @unique
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  usageRecords UsageRecord[]
+  laboratoryId   String
+  laboratory     Laboratory      @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  invoices       Invoice[]
+  usageRecords   UsageRecord[]
+  paymentMethods PaymentMethod[]
 
   @@map("subscriptions")
 }
 
+model SubscriptionPlan {
+  id              String          @id @default(cuid())
+  stripeId        String?         @unique
+  name            String
+  description     String?         @db.Text
+  price           Float
+  currency        String          @default("USD")
+  interval        BillingInterval @default(MONTHLY)
+  intervalCount   Int             @default(1)
+  trialPeriodDays Int?            @default(0)
+  features        Json            @default("{}")
+  limits          Json            @default("{}")
+  isActive        Boolean         @default(true)
+  sortOrder       Int             @default(0)
+  metadata        Json            @default("{}")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relationships
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  stripeId    String?       @unique
+  number      String        @unique
+  status      InvoiceStatus @default(DRAFT)
+  amount      Float
+  currency    String        @default("USD")
+  taxAmount   Float         @default(0)
+  totalAmount Float
+  subtotal    Float
+  description String?       @db.Text
+  dueDate     DateTime?
+  paidAt      DateTime?
+  voidedAt    DateTime?
+  metadata    Json          @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relationships
+  subscriptionId  String?
+  subscription    Subscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  laboratoryId    String
+  laboratory      Laboratory     @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  invoiceItems    InvoiceItem[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  stripeId    String?  @unique
+  description String
+  quantity    Int      @default(1)
+  unitAmount  Float
+  totalAmount Float
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
+
+model PaymentMethod {
+  id          String            @id @default(cuid())
+  stripeId    String?           @unique
+  type        PaymentMethodType
+  brand       String?
+  last4       String?
+  expMonth    Int?
+  expYear     Int?
+  fingerprint String?
+  country     String?
+  isDefault   Boolean           @default(false)
+  metadata    Json              @default("{}")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relationships
+  laboratoryId   String
+  laboratory     Laboratory    @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoices       Invoice[]
+
+  @@map("payment_methods")
+}
+
 model UsageRecord {
-  id         String   @id @default(cuid())
-  feature    String
-  quantity   Int      @default(1)
-  cost       Float?
-  metadata   Json     @default("{}")
-  recordedAt DateTime @default(now())
+  id        String      @id @default(cuid())
+  stripeId  String?     @unique
+  quantity  Int
+  timestamp DateTime
+  action    UsageAction @default(INCREMENT)
+  metadata  Json        @default("{}")
+  createdAt DateTime    @default(now())
 
   // Relationships
   subscriptionId String
@@ -325,22 +532,42 @@ model UsageRecord {
   @@map("usage_records")
 }
 
-model AuditLog {
-  id         String   @id @default(cuid())
-  action     String
-  entityType String
-  entityId   String
-  oldValues  Json?
-  newValues  Json?
-  ipAddress  String?
-  userAgent  String?
-  timestamp  DateTime @default(now())
+model BillingEvent {
+  id          String             @id @default(cuid())
+  stripeId    String?            @unique
+  type        BillingEventType
+  status      BillingEventStatus @default(PENDING)
+  amount      Float?
+  currency    String             @default("USD")
+  description String?            @db.Text
+  metadata    Json               @default("{}")
+  processedAt DateTime?
+  createdAt   DateTime           @default(now())
 
   // Relationships
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id])
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
 
-  @@map("audit_logs")
+  @@map("billing_events")
+}
+
+model BillingSettings {
+  id              String   @id @default(cuid())
+  autoPay         Boolean  @default(true)
+  emailInvoices   Boolean  @default(true)
+  taxExempt       Boolean  @default(false)
+  taxId           String?
+  billingAddress  Json     @default("{}")
+  invoiceSettings Json     @default("{}")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  laboratoryId String     @unique
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+
+  @@map("billing_settings")
 }
 
 model Notification {
@@ -439,90 +666,90 @@ model NotificationHistory {
 }
 
 model UserInvitation {
-  id                String   @id @default(cuid())
-  email             String
-  role              UserRole
-  message           String?  @db.Text
-  status            InvitationStatus @default(PENDING)
-  expiresAt         DateTime
-  acceptedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id         String           @id @default(cuid())
+  email      String
+  role       UserRole
+  message    String?          @db.Text
+  status     InvitationStatus @default(PENDING)
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   // Relationships
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  invitedById       String
-  invitedBy         User @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
-  invitedUserId     String?
-  invitedUser       User? @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
+  laboratoryId  String
+  laboratory    Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  invitedById   String
+  invitedBy     User       @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedUserId String?
+  invitedUser   User?      @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
 
   @@map("user_invitations")
 }
 
 model UserProfile {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  title             String?
-  department        String?
-  location          String?
-  employeeId        String?
-  hireDate          DateTime?
-  supervisorId      String?
-  workSchedule      Json     @default("{}")
-  availability      Json     @default("{}")
-  performance       Json     @default("{}")
-  goals             Json     @default("[]")
-  achievements      Json     @default("[]")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  title        String?
+  department   String?
+  location     String?
+  employeeId   String?
+  hireDate     DateTime?
+  supervisorId String?
+  workSchedule Json      @default("{}")
+  availability Json      @default("{}")
+  performance  Json      @default("{}")
+  goals        Json      @default("[]")
+  achievements Json      @default("[]")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   // Relationships
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
 
 model TeamActivity {
-  id                String   @id @default(cuid())
-  type              TeamActivityType
-  title             String
-  description       String?  @db.Text
-  metadata          Json     @default("{}")
-  createdAt         DateTime @default(now())
+  id          String           @id @default(cuid())
+  type        TeamActivityType
+  title       String
+  description String?          @db.Text
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now())
 
   // Relationships
-  userId            String
-  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
 
   @@map("team_activities")
 }
 
 model Assignment {
-  id                String   @id @default(cuid())
-  title             String
-  description       String?  @db.Text
-  type              AssignmentType
-  priority          AssignmentPriority @default(NORMAL)
-  status            AssignmentStatus @default(PENDING)
-  dueDate           DateTime?
-  completedAt       DateTime?
-  estimatedHours    Float?
-  actualHours       Float?
-  notes             String?  @db.Text
-  metadata          Json     @default("{}")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id             String             @id @default(cuid())
+  title          String
+  description    String?            @db.Text
+  type           AssignmentType
+  priority       AssignmentPriority @default(NORMAL)
+  status         AssignmentStatus   @default(PENDING)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  estimatedHours Float?
+  actualHours    Float?
+  notes          String?            @db.Text
+  metadata       Json               @default("{}")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   // Relationships
-  assignedToId      String
-  assignedTo        User @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
-  assignedById      String
-  assignedBy        User @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
-  laboratoryId      String
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  assignedToId String
+  assignedTo   User       @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
+  assignedById String
+  assignedBy   User       @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
+  laboratoryId String
+  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
 
   @@map("assignments")
 }
@@ -641,21 +868,15 @@ enum OperationStatus {
   CANCELLED
 }
 
-enum SubscriptionPlan {
-  STARTER
-  PROFESSIONAL
-  ENTERPRISE
-  CUSTOM
-}
-
 enum SubscriptionStatus {
   ACTIVE
-  CANCELLED
+  CANCELED
   INCOMPLETE
   INCOMPLETE_EXPIRED
   PAST_DUE
   TRIALING
   UNPAID
+  PAUSED
 }
 
 enum BillingCycle {
@@ -752,4 +973,106 @@ enum AssignmentStatus {
   COMPLETED
   CANCELLED
   OVERDUE
+}
+
+enum BillingInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum PaymentMethodType {
+  CARD
+  BANK_ACCOUNT
+  SEPA_DEBIT
+  IDEAL
+  SOFORT
+  BANCONTACT
+}
+
+enum UsageAction {
+  INCREMENT
+  SET
+}
+
+enum BillingEventType {
+  INVOICE_CREATED
+  INVOICE_PAID
+  INVOICE_PAYMENT_FAILED
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_UPDATED
+  SUBSCRIPTION_DELETED
+  PAYMENT_METHOD_ATTACHED
+  PAYMENT_METHOD_DETACHED
+  CUSTOMER_CREATED
+  CUSTOMER_UPDATED
+  CUSTOMER_DELETED
+}
+
+enum BillingEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  CANCELLED
+}
+
+enum EquipmentLifecycleStage {
+  PLANNING
+  PROCUREMENT
+  INSTALLATION
+  OPERATIONAL
+  MAINTENANCE
+  UPGRADE
+  DECOMMISSIONING
+  RETIRED
+}
+
+enum PhotoCategory {
+  INSTALLATION
+  MAINTENANCE
+  CONDITION
+  DAMAGE
+  SETUP
+  GENERAL
+}
+
+enum DocumentCategory {
+  MANUAL
+  SPECIFICATION
+  CERTIFICATE
+  WARRANTY
+  CONTRACT
+  REPORT
+  PROCEDURE
+  TRAINING
+  COMPLIANCE
+  OTHER
+}
+
+enum RelationType {
+  DEPENDS_ON
+  SUPPORTS
+  REPLACES
+  UPGRADES
+  CONNECTS_TO
+  SHARES_RESOURCE
+  SIMILAR_TO
+}
+
+enum PerformanceStatus {
+  EXCELLENT
+  GOOD
+  NORMAL
+  DEGRADED
+  POOR
+  FAILED
 }

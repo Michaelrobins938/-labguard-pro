@@ -14,7 +14,15 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Activity
+  Activity,
+  Search,
+  Database,
+  Zap,
+  Shield,
+  Key,
+  Upload,
+  Download,
+  Server
 } from 'lucide-react'
 
 const navigation = [
@@ -28,9 +36,25 @@ const navigation = [
   { name: 'Compliance', href: '/dashboard/reports/compliance', icon: CheckCircle },
   { name: 'Equipment Analytics', href: '/dashboard/reports/equipment', icon: BarChart3 },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Enterprise Analytics', href: '/dashboard/analytics/enterprise', icon: BarChart3 },
+  { name: 'Search', href: '/dashboard/search', icon: Search },
+  { name: 'Bulk Operations', href: '/dashboard/bulk-operations', icon: Upload },
+  { name: 'Data Management', href: '/dashboard/data-management', icon: Database },
+  { name: 'LIMS Integration', href: '/dashboard/integrations/lims', icon: Server },
+  { name: 'API Management', href: '/dashboard/api', icon: Key },
+  { name: 'Automation', href: '/dashboard/automation', icon: Zap },
   { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
+  { name: 'System Admin', href: '/admin/system', icon: Shield },
+]
+
+const billingSubNavigation = [
+  { name: 'Overview', href: '/dashboard/billing', icon: CreditCard },
+  { name: 'Subscription', href: '/dashboard/billing/subscription', icon: CreditCard },
+  { name: 'Payment Methods', href: '/dashboard/billing/payment-methods', icon: CreditCard },
+  { name: 'Invoices', href: '/dashboard/billing/invoices', icon: FileText },
+  { name: 'Usage', href: '/dashboard/billing/usage', icon: Activity },
 ]
 
 export function DashboardSidebar() {
@@ -59,20 +83,46 @@ export function DashboardSidebar() {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`
-                  flex items-center px-4 py-3 text-sm font-medium rounded-lg mx-3 mb-1
-                  ${isActive 
-                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  }
-                `}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.name}
-              </Link>
+              <div key={item.name}>
+                <Link
+                  href={item.href}
+                  className={`
+                    flex items-center px-4 py-3 text-sm font-medium rounded-lg mx-3 mb-1
+                    ${isActive 
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.name}
+                </Link>
+                
+                {/* Show billing sub-navigation when on billing pages */}
+                {item.name === 'Billing' && isActive && (
+                  <div className="ml-8 mt-2 space-y-1">
+                    {billingSubNavigation.map((subItem) => {
+                      const isSubActive = pathname === subItem.href
+                      return (
+                        <Link
+                          key={subItem.name}
+                          href={subItem.href}
+                          className={`
+                            flex items-center px-3 py-2 text-xs font-medium rounded
+                            ${isSubActive 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'text-gray-600 hover:text-blue-600'
+                            }
+                          `}
+                        >
+                          <subItem.icon className="w-3 h-3 mr-2" />
+                          {subItem.name}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>

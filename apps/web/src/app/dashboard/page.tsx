@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
   TrendingUp,
   AlertTriangle,
@@ -10,7 +11,13 @@ import {
   Calendar,
   Users,
   Settings,
-  Bell
+  Bell,
+  Upload,
+  Database,
+  Key,
+  Zap,
+  Search,
+  Shield
 } from 'lucide-react'
 
 interface DashboardStats {
@@ -234,22 +241,50 @@ export default function DashboardPage() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <Link href="/dashboard/equipment/new" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <Settings className="w-5 h-5 text-blue-600 mr-3" />
             <span className="text-sm font-medium text-gray-900">Add Equipment</span>
-          </button>
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          </Link>
+          <Link href="/dashboard/calibrations/new" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <Calendar className="w-5 h-5 text-green-600 mr-3" />
             <span className="text-sm font-medium text-gray-900">Schedule Calibration</span>
-          </button>
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          </Link>
+          <Link href="/dashboard/team/invite" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <Users className="w-5 h-5 text-purple-600 mr-3" />
             <span className="text-sm font-medium text-gray-900">Invite Team Member</span>
-          </button>
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          </Link>
+          <Link href="/dashboard/notifications" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             <Bell className="w-5 h-5 text-indigo-600 mr-3" />
             <span className="text-sm font-medium text-gray-900">View Notifications</span>
-          </button>
+          </Link>
+          <Link href="/dashboard/bulk-operations" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Upload className="w-5 h-5 text-orange-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Bulk Operations</span>
+          </Link>
+          <Link href="/dashboard/data-management" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Database className="w-5 h-5 text-teal-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Data Management</span>
+          </Link>
+          <Link href="/dashboard/api" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Key className="w-5 h-5 text-yellow-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">API Management</span>
+          </Link>
+          <Link href="/dashboard/automation" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Zap className="w-5 h-5 text-purple-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Automation</span>
+          </Link>
+          <Link href="/dashboard/search" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Search className="w-5 h-5 text-gray-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Global Search</span>
+          </Link>
+          <Link href="/dashboard/analytics/enterprise" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <BarChart3 className="w-5 h-5 text-red-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">Enterprise Analytics</span>
+          </Link>
+          <Link href="/admin/system" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <Shield className="w-5 h-5 text-red-600 mr-3" />
+            <span className="text-sm font-medium text-gray-900">System Admin</span>
+          </Link>
         </div>
       </div>
     </div>

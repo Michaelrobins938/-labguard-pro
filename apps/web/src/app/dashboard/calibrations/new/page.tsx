@@ -1,15 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import {
   ArrowLeft,
+  Save,
+  X,
+  AlertCircle,
+  CheckCircle,
   Calendar,
-  Clock,
-  Settings,
-  User,
-  FileText,
-  CheckCircle
+  Clock
 } from 'lucide-react'
 
 interface Equipment {
@@ -19,476 +20,412 @@ interface Equipment {
   serialNumber: string
   equipmentType: string
   location: string
-  lastCalibratedAt?: string
-  nextCalibrationAt?: string
 }
 
-interface Template {
-  id: string
-  name: string
+interface CalibrationFormData {
+  equipmentId: string
+  calibrationType: string
+  scheduledDate: string
+  scheduledTime: string
+  dueDate: string
+  dueTime: string
   description: string
-  category: string
-  version: string
+  notes: string
 }
 
 export default function NewCalibrationPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
+  const searchParams = useSearchParams()
+  const preSelectedEquipment = searchParams.get('equipment')
+  
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [equipment, setEquipment] = useState<Equipment[]>([])
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [selectedEquipment, setSelectedEquipment] = useState<string>('')
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
-  const [calibrationType, setCalibrationType] = useState<string>('PERIODIC')
-  const [scheduledDate, setScheduledDate] = useState<string>('')
-  const [scheduledTime, setScheduledTime] = useState<string>('')
-  const [dueDate, setDueDate] = useState<string>('')
-  const [dueTime, setDueTime] = useState<string>('')
-  const [assignedTo, setAssignedTo] = useState<string>('')
-  const [notes, setNotes] = useState<string>('')
+  const [equipmentLoading, setEquipmentLoading] = useState(true)
+  
+  const [formData, setFormData] = useState<CalibrationFormData>({
+    equipmentId: preSelectedEquipment || '',
+    calibrationType: 'PERIODIC',
+    scheduledDate: '',
+    scheduledTime: '',
+    dueDate: '',
+    dueTime: '',
+    description: '',
+    notes: ''
+  })
 
-  // Mock data - replace with API calls
+  // Fetch equipment list
   useEffect(() => {
-    const mockEquipment: Equipment[] = [
-      {
-        id: 'eq1',
-        name: 'Analytical Balance AB-001',
-        model: 'Sartorius ME36S',
-        serialNumber: 'AB-001',
-        equipmentType: 'ANALYTICAL_BALANCE',
-        location: 'Lab A - Room 101',
-        lastCalibratedAt: '2024-01-01T10:00:00Z',
-        nextCalibrationAt: '2024-02-01T10:00:00Z'
-      },
-      {
-        id: 'eq2',
-        name: 'Centrifuge CF-003',
-        model: 'Eppendorf 5810R',
-        serialNumber: 'CF-003',
-        equipmentType: 'CENTRIFUGE',
-        location: 'Lab B - Room 102',
-        lastCalibratedAt: '2024-01-05T14:00:00Z',
-        nextCalibrationAt: '2024-02-05T14:00:00Z'
-      },
-      {
-        id: 'eq3',
-        name: 'pH Meter PH-002',
-        model: 'Thermo Scientific Orion',
-        serialNumber: 'PH-002',
-        equipmentType: 'OTHER',
-        location: 'Lab A - Room 101',
-        lastCalibratedAt: '2024-01-10T09:00:00Z',
-        nextCalibrationAt: '2024-02-10T09:00:00Z'
-      }
-    ]
+    const fetchEquipment = async () => {
+      try {
+        setEquipmentLoading(true)
+        
+        const response = await fetch('/api/equipment', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
 
-    const mockTemplates: Template[] = [
-      {
-        id: 'tpl1',
-        name: 'Analytical Balance Calibration',
-        description: 'Standard calibration procedure for analytical balances',
-        category: 'Equipment Calibration',
-        version: '1.0'
-      },
-      {
-        id: 'tpl2',
-        name: 'Centrifuge Calibration',
-        description: 'Calibration procedure for laboratory centrifuges',
-        category: 'Equipment Calibration',
-        version: '1.0'
-      },
-      {
-        id: 'tpl3',
-        name: 'pH Meter Calibration',
-        description: 'Calibration procedure for pH meters and electrodes',
-        category: 'Equipment Calibration',
-        version: '1.0'
-      }
-    ]
+        if (!response.ok) {
+          throw new Error('Failed to fetch equipment data')
+        }
 
-    setEquipment(mockEquipment)
-    setTemplates(mockTemplates)
+        const data = await response.json()
+        setEquipment(data.data)
+      } catch (err) {
+        console.error('Error fetching equipment:', err)
+        // Fallback to mock data
+        const mockEquipment: Equipment[] = [
+          {
+            id: '1',
+            name: 'Analytical Balance AB-001',
+            model: 'Sartorius ME36S',
+            serialNumber: 'AB-001',
+            equipmentType: 'ANALYTICAL_BALANCE',
+            location: 'Lab A - Room 101'
+          },
+          {
+            id: '2',
+            name: 'Centrifuge CF-003',
+            model: 'Eppendorf 5810R',
+            serialNumber: 'CF-003',
+            equipmentType: 'CENTRIFUGE',
+            location: 'Lab B - Room 102'
+          },
+          {
+            id: '3',
+            name: 'pH Meter PH-002',
+            model: 'Thermo Scientific Orion',
+            serialNumber: 'PH-002',
+            equipmentType: 'OTHER',
+            location: 'Lab A - Room 101'
+          }
+        ]
+        setEquipment(mockEquipment)
+      } finally {
+        setEquipmentLoading(false)
+      }
+    }
+
+    fetchEquipment()
   }, [])
 
-  const handleSubmit = async () => {
-    setLoading(true)
-    
-    try {
-      // Combine date and time
-      const scheduledDateTime = `${scheduledDate}T${scheduledTime}:00Z`
-      const dueDateTime = `${dueDate}T${dueTime}:00Z`
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
 
-      const calibrationData = {
-        equipmentId: selectedEquipment,
-        templateId: selectedTemplate,
-        calibrationType,
-        scheduledDate: scheduledDateTime,
-        dueDate: dueDateTime,
-        assignedToId: assignedTo,
-        notes
+  const validateForm = () => {
+    if (!formData.equipmentId) return 'Equipment selection is required'
+    if (!formData.scheduledDate) return 'Scheduled date is required'
+    if (!formData.scheduledTime) return 'Scheduled time is required'
+    if (!formData.dueDate) return 'Due date is required'
+    if (!formData.dueTime) return 'Due time is required'
+    
+    const scheduledDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`)
+    const dueDateTime = new Date(`${formData.dueDate}T${formData.dueTime}`)
+    
+    if (scheduledDateTime >= dueDateTime) {
+      return 'Due date/time must be after scheduled date/time'
+    }
+    
+    return null
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const validationError = validateForm()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const scheduledDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`)
+      const dueDateTime = new Date(`${formData.dueDate}T${formData.dueTime}`)
+
+      const response = await fetch('/api/calibrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          equipmentId: formData.equipmentId,
+          calibrationType: formData.calibrationType,
+          scheduledDate: scheduledDateTime.toISOString(),
+          dueDate: dueDateTime.toISOString(),
+          description: formData.description.trim() || undefined,
+          notes: formData.notes.trim() || undefined
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create calibration')
       }
 
-      // Mock API call - replace with actual API
-      console.log('Creating calibration:', calibrationData)
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      router.push('/dashboard/calibrations')
-    } catch (error) {
-      console.error('Failed to create calibration:', error)
+      setSuccess(true)
+      setTimeout(() => {
+        router.push('/dashboard/calibrations')
+      }, 1500)
+    } catch (err) {
+      console.error('Error creating calibration:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create calibration')
     } finally {
       setLoading(false)
     }
   }
 
-  const selectedEquipmentData = equipment.find(eq => eq.id === selectedEquipment)
-  const selectedTemplateData = templates.find(tpl => tpl.id === selectedTemplate)
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Schedule Calibration</h1>
-          <p className="text-gray-600">Create a new calibration schedule</p>
-        </div>
-      </div>
-
-      {/* Progress Steps */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              1
-            </div>
-            <span className={`text-sm font-medium ${step >= 1 ? 'text-blue-600' : 'text-gray-600'}`}>
-              Equipment & Template
-            </span>
-          </div>
-          <div className="flex-1 h-px bg-gray-200 mx-4"></div>
-          <div className="flex items-center space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              2
-            </div>
-            <span className={`text-sm font-medium ${step >= 2 ? 'text-blue-600' : 'text-gray-600'}`}>
-              Schedule & Assignment
-            </span>
-          </div>
-          <div className="flex-1 h-px bg-gray-200 mx-4"></div>
-          <div className="flex items-center space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
-              3
-            </div>
-            <span className={`text-sm font-medium ${step >= 3 ? 'text-blue-600' : 'text-gray-600'}`}>
-              Review & Create
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 1: Equipment & Template Selection */}
-      {step === 1 && (
-        <div className="bg-white p-6 rounded-lg shadow space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">Select Equipment & Template</h2>
-          
-          {/* Equipment Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Equipment
-            </label>
-            <select
-              value={selectedEquipment}
-              onChange={(e) => setSelectedEquipment(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select equipment</option>
-              {equipment.map((eq) => (
-                <option key={eq.id} value={eq.id}>
-                  {eq.name} ({eq.serialNumber})
-                </option>
-              ))}
-            </select>
-            
-            {selectedEquipmentData && (
-              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">Model:</span>
-                    <span className="ml-2 text-gray-600">{selectedEquipmentData.model}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Location:</span>
-                    <span className="ml-2 text-gray-600">{selectedEquipmentData.location}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Last Calibrated:</span>
-                    <span className="ml-2 text-gray-600">
-                      {selectedEquipmentData.lastCalibratedAt 
-                        ? new Date(selectedEquipmentData.lastCalibratedAt).toLocaleDateString()
-                        : 'Never'
-                      }
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Next Due:</span>
-                    <span className="ml-2 text-gray-600">
-                      {selectedEquipmentData.nextCalibrationAt 
-                        ? new Date(selectedEquipmentData.nextCalibrationAt).toLocaleDateString()
-                        : 'Not scheduled'
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Calibration Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Calibration Type
-            </label>
-            <select
-              value={calibrationType}
-              onChange={(e) => setCalibrationType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="INITIAL">Initial Calibration</option>
-              <option value="PERIODIC">Periodic Calibration</option>
-              <option value="AFTER_REPAIR">After Repair</option>
-              <option value="VERIFICATION">Verification</option>
-              <option value="INTERIM_CHECK">Interim Check</option>
-            </select>
-          </div>
-
-          {/* Template Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Compliance Template
-            </label>
-            <select
-              value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select template</option>
-              {templates.map((tpl) => (
-                <option key={tpl.id} value={tpl.id}>
-                  {tpl.name}
-                </option>
-              ))}
-            </select>
-            
-            {selectedTemplateData && (
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm">
-                  <div className="font-medium text-blue-900">{selectedTemplateData.name}</div>
-                  <div className="text-blue-700">{selectedTemplateData.description}</div>
-                  <div className="text-blue-600 text-xs mt-1">Version {selectedTemplateData.version}</div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              onClick={() => setStep(2)}
-              disabled={!selectedEquipment || !selectedTemplate}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Schedule & Assignment */}
-      {step === 2 && (
-        <div className="bg-white p-6 rounded-lg shadow space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">Schedule & Assignment</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Scheduled Date & Time */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Scheduled Date
-              </label>
-              <input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Scheduled Time
-              </label>
-              <input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Due Date & Time */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Time
-              </label>
-              <input
-                type="time"
-                value={dueTime}
-                onChange={(e) => setDueTime(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Assignment */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Assigned To
-            </label>
-            <select
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select technician</option>
-              <option value="user1">Dr. Sarah Johnson</option>
-              <option value="user2">Mike Chen</option>
-              <option value="user3">Lisa Rodriguez</option>
-            </select>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Additional notes or special instructions..."
-            />
-          </div>
-
-          <div className="flex justify-between">
-            <button
-              onClick={() => setStep(1)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Back
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={!scheduledDate || !scheduledTime || !dueDate || !dueTime}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Step 3: Review & Create */}
-      {step === 3 && (
-        <div className="bg-white p-6 rounded-lg shadow space-y-6">
-          <h2 className="text-lg font-semibold text-gray-900">Review & Create</h2>
-          
-          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/dashboard/calibrations"
+                className="inline-flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Calibrations
+              </Link>
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">Equipment</h3>
-                <p className="text-sm text-gray-600">{selectedEquipmentData?.name}</p>
-                <p className="text-xs text-gray-500">{selectedEquipmentData?.model} • {selectedEquipmentData?.serialNumber}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Template</h3>
-                <p className="text-sm text-gray-600">{selectedTemplateData?.name}</p>
-                <p className="text-xs text-gray-500">{selectedTemplateData?.description}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Schedule</h3>
-                <p className="text-sm text-gray-600">
-                  {scheduledDate} at {scheduledTime}
+                <h1 className="text-3xl font-bold text-gray-900">Schedule Calibration</h1>
+                <p className="text-gray-600 mt-2">
+                  Schedule a new calibration for laboratory equipment
                 </p>
-                <p className="text-xs text-gray-500">Due: {dueDate} at {dueTime}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Type</h3>
-                <p className="text-sm text-gray-600">{calibrationType}</p>
               </div>
             </div>
-            
-            {notes && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Notes</h3>
-                <p className="text-sm text-gray-600">{notes}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between">
-            <button
-              onClick={() => setStep(2)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Creating...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Create Calibration</span>
-                </>
-              )}
-            </button>
           </div>
         </div>
-      )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-green-800">Calibration Scheduled Successfully</h3>
+                <p className="text-sm text-green-700 mt-1">
+                  Redirecting to calibrations list...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+              <button
+                onClick={() => setError(null)}
+                className="ml-auto text-red-400 hover:text-red-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Form */}
+        <div className="bg-white rounded-lg shadow">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Equipment Selection */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Equipment Selection</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Equipment *
+                </label>
+                {equipmentLoading ? (
+                  <div className="animate-pulse">
+                    <div className="h-10 bg-gray-200 rounded border border-gray-300"></div>
+                  </div>
+                ) : (
+                  <select
+                    name="equipmentId"
+                    value={formData.equipmentId}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="">Select equipment...</option>
+                    {equipment.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} - {item.model} ({item.serialNumber})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            {/* Calibration Details */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Calibration Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Calibration Type *
+                  </label>
+                  <select
+                    name="calibrationType"
+                    value={formData.calibrationType}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="INITIAL">Initial</option>
+                    <option value="PERIODIC">Periodic</option>
+                    <option value="AFTER_REPAIR">After Repair</option>
+                    <option value="VERIFICATION">Verification</option>
+                    <option value="INTERIM_CHECK">Interim Check</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Brief description of the calibration"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Scheduling */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Scheduling</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Scheduled Date *
+                  </label>
+                  <input
+                    type="date"
+                    name="scheduledDate"
+                    value={formData.scheduledDate}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Scheduled Time *
+                  </label>
+                  <input
+                    type="time"
+                    name="scheduledTime"
+                    value={formData.scheduledTime}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Date *
+                  </label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    value={formData.dueDate}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Due Time *
+                  </label>
+                  <input
+                    type="time"
+                    name="dueTime"
+                    value={formData.dueTime}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Notes */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Additional notes or special instructions..."
+                />
+              </div>
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+              <Link
+                href="/dashboard/calibrations"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={loading || equipmentLoading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Scheduling...
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Schedule Calibration
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   )
 } 

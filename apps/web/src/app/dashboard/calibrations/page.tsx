@@ -46,69 +46,120 @@ export default function CalibrationsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock data - replace with API call
+  // Fetch calibration data from API
   useEffect(() => {
-    const mockCalibrations: Calibration[] = [
-      {
-        id: '1',
-        equipment: {
-          id: 'eq1',
-          name: 'Analytical Balance AB-001',
-          model: 'Sartorius ME36S',
-          serialNumber: 'AB-001',
-          equipmentType: 'ANALYTICAL_BALANCE',
-          location: 'Lab A - Room 101'
-        },
-        calibrationType: 'PERIODIC',
-        scheduledDate: '2024-01-15T09:00:00Z',
-        dueDate: '2024-01-15T17:00:00Z',
-        performedDate: '2024-01-15T10:30:00Z',
-        status: 'COMPLETED',
-        complianceStatus: 'COMPLIANT',
-        complianceScore: 95,
-        performedBy: {
-          id: 'user1',
-          name: 'Dr. Sarah Johnson',
-          email: 'sarah.johnson@lab.com'
-        }
-      },
-      {
-        id: '2',
-        equipment: {
-          id: 'eq2',
-          name: 'Centrifuge CF-003',
-          model: 'Eppendorf 5810R',
-          serialNumber: 'CF-003',
-          equipmentType: 'CENTRIFUGE',
-          location: 'Lab B - Room 102'
-        },
-        calibrationType: 'PERIODIC',
-        scheduledDate: '2024-01-20T09:00:00Z',
-        dueDate: '2024-01-20T17:00:00Z',
-        status: 'SCHEDULED',
-        complianceStatus: 'PENDING'
-      },
-      {
-        id: '3',
-        equipment: {
-          id: 'eq3',
-          name: 'pH Meter PH-002',
-          model: 'Thermo Scientific Orion',
-          serialNumber: 'PH-002',
-          equipmentType: 'OTHER',
-          location: 'Lab A - Room 101'
-        },
-        calibrationType: 'PERIODIC',
-        scheduledDate: '2024-01-10T09:00:00Z',
-        dueDate: '2024-01-10T17:00:00Z',
-        status: 'OVERDUE',
-        complianceStatus: 'NON_COMPLIANT'
-      }
-    ]
+    const fetchCalibrations = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch('/api/calibrations', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
 
-    setCalibrations(mockCalibrations)
-    setLoading(false)
+        if (!response.ok) {
+          throw new Error('Failed to fetch calibration data')
+        }
+
+        const data = await response.json()
+        
+        // Transform API data to match our interface
+        const transformedCalibrations = data.data.map((item: any) => ({
+          id: item.id,
+          equipment: {
+            id: item.equipment.id,
+            name: item.equipment.name,
+            model: item.equipment.model,
+            serialNumber: item.equipment.serialNumber,
+            equipmentType: item.equipment.equipmentType,
+            location: item.equipment.location || 'Not specified'
+          },
+          calibrationType: item.calibrationType,
+          scheduledDate: item.scheduledDate,
+          dueDate: item.dueDate,
+          performedDate: item.performedDate,
+          status: item.status,
+          complianceStatus: item.complianceStatus,
+          complianceScore: item.complianceScore,
+          performedBy: item.performedBy
+        }))
+
+        setCalibrations(transformedCalibrations)
+      } catch (err) {
+        console.error('Error fetching calibrations:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch calibration data')
+        
+        // Fallback to mock data for development
+        const mockCalibrations: Calibration[] = [
+          {
+            id: '1',
+            equipment: {
+              id: 'eq1',
+              name: 'Analytical Balance AB-001',
+              model: 'Sartorius ME36S',
+              serialNumber: 'AB-001',
+              equipmentType: 'ANALYTICAL_BALANCE',
+              location: 'Lab A - Room 101'
+            },
+            calibrationType: 'PERIODIC',
+            scheduledDate: '2024-01-15T09:00:00Z',
+            dueDate: '2024-01-15T17:00:00Z',
+            performedDate: '2024-01-15T10:30:00Z',
+            status: 'COMPLETED',
+            complianceStatus: 'COMPLIANT',
+            complianceScore: 95,
+            performedBy: {
+              id: 'user1',
+              name: 'Dr. Sarah Johnson',
+              email: 'sarah.johnson@lab.com'
+            }
+          },
+          {
+            id: '2',
+            equipment: {
+              id: 'eq2',
+              name: 'Centrifuge CF-003',
+              model: 'Eppendorf 5810R',
+              serialNumber: 'CF-003',
+              equipmentType: 'CENTRIFUGE',
+              location: 'Lab B - Room 102'
+            },
+            calibrationType: 'PERIODIC',
+            scheduledDate: '2024-01-20T09:00:00Z',
+            dueDate: '2024-01-20T17:00:00Z',
+            status: 'SCHEDULED',
+            complianceStatus: 'PENDING'
+          },
+          {
+            id: '3',
+            equipment: {
+              id: 'eq3',
+              name: 'pH Meter PH-002',
+              model: 'Thermo Scientific Orion',
+              serialNumber: 'PH-002',
+              equipmentType: 'OTHER',
+              location: 'Lab A - Room 101'
+            },
+            calibrationType: 'PERIODIC',
+            scheduledDate: '2024-01-10T09:00:00Z',
+            dueDate: '2024-01-10T17:00:00Z',
+            status: 'OVERDUE',
+            complianceStatus: 'NON_COMPLIANT'
+          }
+        ]
+        setCalibrations(mockCalibrations)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCalibrations()
   }, [])
 
   const getStatusColor = (status: string) => {
@@ -167,6 +218,13 @@ export default function CalibrationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Calibrations</h1>
           <p className="text-gray-600">Manage equipment calibrations and compliance</p>
+          {error && (
+            <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                {error} - Using demo data for preview
+              </p>
+            </div>
+          )}
         </div>
         <Link
           href="/dashboard/calibrations/new"
