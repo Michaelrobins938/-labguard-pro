@@ -2,6 +2,7 @@
 backend/
 packages/
 cursor instructions/
+frontend/
 *.md
 !README.md
 .env
