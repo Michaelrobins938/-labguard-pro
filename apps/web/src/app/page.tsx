@@ -3,7 +3,12 @@ import { BiomniShowcase } from '@/components/landing/BiomniShowcase'
 import { TrustSignalsSection } from '@/components/landing/TrustSignalsSection'
 import { BenefitsSection } from '@/components/landing/BenefitsSection'
 import { FeaturesSection } from '@/components/landing/FeaturesSection'
-import { ROICalculatorSection } from '@/components/landing/ROICalculatorSection'
+import { ROISection } from '@/components/landing/ROISection'
+import { AIProcessSection } from '@/components/landing/AIProcessSection'
+import { ProductDemoSection } from '@/components/landing/ProductDemoSection'
+import { LaboratoryEnvironmentSection } from '@/components/landing/LaboratoryEnvironmentSection'
+import { ComplianceComparisonSection } from '@/components/landing/ComplianceComparisonSection'
+import { FeatureComparisonSection } from '@/components/landing/FeatureComparisonSection'
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection'
 import { PricingSection } from '@/components/landing/PricingSection'
 import { CTASection } from '@/components/landing/CTASection'
@@ -26,7 +31,12 @@ export default function LandingPage() {
         <TrustSignalsSection />
         <BenefitsSection />
         <FeaturesSection />
-        <ROICalculatorSection />
+        <ROISection />
+        <AIProcessSection />
+        <ProductDemoSection />
+        <LaboratoryEnvironmentSection />
+        <ComplianceComparisonSection />
+        <FeatureComparisonSection />
         <TestimonialsSection />
         <PricingSection />
         <CTASection />
