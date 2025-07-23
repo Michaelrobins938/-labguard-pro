@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<any> {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password required')
         }
@@ -23,13 +23,7 @@ export const authOptions: NextAuthOptions = {
             email: credentials.email.toLowerCase()
           },
           include: {
-            laboratory: {
-              select: {
-                id: true,
-                name: true,
-                isActive: true
-              }
-            }
+            laboratory: true
           }
         })
 
@@ -63,7 +57,7 @@ export const authOptions: NextAuthOptions = {
           name: `${user.firstName} ${user.lastName}`,
           role: user.role,
           laboratoryId: user.laboratoryId,
-          laboratoryName: user.laboratory.name
+          laboratoryName: user.laboratory?.name || ''
         }
       }
     })

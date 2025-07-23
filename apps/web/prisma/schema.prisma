@@ -13,22 +13,25 @@ datasource db {
 
 // User and Authentication
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String
-  role          UserRole  @default(USER)
-  isActive      Boolean   @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String
+  firstName         String
+  lastName          String
+  role              UserRole @default(TECHNICIAN)
+  isActive          Boolean  @default(true)
+  emailVerified     Boolean  @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
 
   // Relations
-  laboratoryId  String?
-  laboratory    Laboratory? @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
-  calibrations  CalibrationRecord[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
+  laboratoryId      String
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id])
+  calibrations      CalibrationRecord[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
 
   // Indexes for performance
   @@index([email])
