@@ -23,7 +23,8 @@ import {
   CheckCircle,
   Zap,
   Bot,
-  MessageSquare
+  MessageSquare,
+  Activity
 } from 'lucide-react'
 
 interface SidebarItem {
@@ -98,6 +99,12 @@ const sidebarItems: SidebarItem[] = [
     title: 'Notifications',
     href: '/dashboard/notifications',
     icon: <Bell className="h-4 w-4" />
+  },
+  {
+    title: 'QC Monitoring',
+    href: '/dashboard/qc-monitoring',
+    icon: <Activity className="h-4 w-4" />,
+    badge: 'Live'
   },
   {
     title: 'Settings',
