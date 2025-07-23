@@ -1,260 +1,172 @@
 'use client'
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar3D } from '@/components/ai-assistant/Avatar3D';
-import { AIStatusWidget } from '@/components/dashboard/AIStatusWidget';
-import { 
-  FlaskConical, 
-  Lightbulb, 
-  Zap, 
-  Brain, 
-  TrendingUp,
-  Shield,
-  Clock,
-  AlertTriangle
-} from 'lucide-react';
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { BiomniAssistant } from '@/components/ai/BiomniAssistant'
+import { TestTube, Thermometer, Shield, CheckCircle, Bot, Zap, MessageSquare } from 'lucide-react'
 
-export default function AIAssistantDemoPage() {
-  const [avatarState, setAvatarState] = useState<'idle' | 'thinking' | 'speaking' | 'excited' | 'concerned' | 'analyzing'>('idle');
-
-  const features = [
-    {
-      icon: <Brain className="h-6 w-6" />,
-      title: 'Intelligent Analysis',
-      description: 'AI-powered equipment monitoring and predictive maintenance',
-      color: 'from-blue-500 to-purple-500'
-    },
-    {
-      icon: <Shield className="h-6 w-6" />,
-      title: 'Compliance Tracking',
-      description: 'Automated compliance monitoring and reporting',
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
-      icon: <Clock className="h-6 w-6" />,
-      title: 'Proactive Alerts',
-      description: 'Real-time notifications for calibration and maintenance',
-      color: 'from-orange-500 to-red-500'
-    },
-    {
-      icon: <TrendingUp className="h-6 w-6" />,
-      title: 'Performance Optimization',
-      description: 'Data-driven insights to improve lab efficiency',
-      color: 'from-teal-500 to-cyan-500'
-    }
-  ];
-
-  const demoActions = [
-    {
-      title: 'Test Thinking State',
-      action: () => setAvatarState('thinking'),
-      color: 'bg-blue-500'
-    },
-    {
-      title: 'Test Speaking State',
-      action: () => setAvatarState('speaking'),
-      color: 'bg-green-500'
-    },
-    {
-      title: 'Test Excited State',
-      action: () => setAvatarState('excited'),
-      color: 'bg-yellow-500'
-    },
-    {
-      title: 'Test Concerned State',
-      action: () => setAvatarState('concerned'),
-      color: 'bg-red-500'
-    },
-    {
-      title: 'Test Analyzing State',
-      action: () => setAvatarState('analyzing'),
-      color: 'bg-purple-500'
-    },
-    {
-      title: 'Reset to Idle',
-      action: () => setAvatarState('idle'),
-      color: 'bg-gray-500'
-    }
-  ];
-
+export default function AIAssistantDemo() {
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">
-          Biomni AI Assistant Demo
-        </h1>
-        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-          Experience the future of laboratory management with our intelligent AI assistant powered by Stanford's Biomni platform.
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-bold text-gray-900">Biomni AI Assistant Demo</h1>
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          Experience the future of laboratory compliance with our AI-powered assistant. 
+          Validate PCR protocols, check media safety, and ensure CAP compliance in real-time.
         </p>
+        
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle className="h-4 w-4 mr-1" />
+            CAP Accredited
+          </Badge>
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Shield className="h-4 w-4 mr-1" />
+            CLIA Certified
+          </Badge>
+          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+            <Bot className="h-4 w-4 mr-1" />
+            AI Powered
+          </Badge>
+        </div>
       </div>
 
-      {/* Main Avatar Demo */}
-      <Card className="glass-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white text-2xl flex items-center space-x-3">
-            <FlaskConical className="h-8 w-8 text-teal-400" />
-            <span>3D AI Avatar Demo</span>
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Interactive demonstration of the Biomni AI assistant's 3D avatar with different emotional states
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center space-y-8">
-            {/* Large Avatar */}
-            <div className="relative">
-              <Avatar3D 
-                state={avatarState}
-                size="xl"
-                className="drop-shadow-2xl"
-              />
-              
-              {/* Status Indicator */}
-              <div className="absolute -top-4 -right-4">
-                <Badge className={`${
-                  avatarState === 'thinking' ? 'bg-blue-500' :
-                  avatarState === 'speaking' ? 'bg-green-500' :
-                  avatarState === 'excited' ? 'bg-yellow-500' :
-                  avatarState === 'concerned' ? 'bg-red-500' :
-                  avatarState === 'analyzing' ? 'bg-purple-500' :
-                  'bg-gray-500'
-                } text-white`}>
-                  {avatarState.toUpperCase()}
-                </Badge>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* AI Assistant */}
+        <div className="lg:col-span-2">
+          <Card className="h-[600px]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-blue-600" />
+                Biomni AI Assistant
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-full p-0">
+              <BiomniAssistant />
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* State Controls */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-2xl">
-              {demoActions.map((action, index) => (
-                <Button
-                  key={index}
-                  onClick={action.action}
-                  className={`${action.color} hover:opacity-80 transition-all duration-200`}
-                  variant="outline"
-                >
-                  {action.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {features.map((feature, index) => (
-          <Card key={index} className="glass-card border-white/10 hover:border-white/20 transition-all duration-200">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-r ${feature.color} text-white`}>
-                  {feature.icon}
+        {/* Features Overview */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-yellow-600" />
+                Key Features
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <TestTube className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">PCR Verification</h4>
+                    <p className="text-sm text-gray-600">Validate PCR run setup against protocols</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-400">
-                    {feature.description}
-                  </p>
+                
+                <div className="flex items-start gap-3">
+                  <Thermometer className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">Media Validation</h4>
+                    <p className="text-sm text-gray-600">Check biochemical media safety</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-red-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium">Safety Incidents</h4>
+                    <p className="text-sm text-gray-600">Verify CAP compliance protocols</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        ))}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-purple-600" />
+                Voice Commands
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm space-y-2">
+                <p className="font-medium">Try saying:</p>
+                <ul className="space-y-1 text-gray-600">
+                  <li>• "Open PCR verification"</li>
+                  <li>• "Check media validation"</li>
+                  <li>• "Show safety incidents"</li>
+                  <li>• "What are the compliance requirements?"</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                Compliance Benefits
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <span>Prevent costly reruns</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <span>Ensure CLIA compliance</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <span>Maintain CAP accreditation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <span>Real-time validation</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* AI Status Widget Demo */}
-      <Card className="glass-card border-white/10">
+      {/* Demo Instructions */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white text-xl flex items-center space-x-2">
-            <Zap className="h-5 w-5 text-yellow-400" />
-            <span>Live AI Status Monitor</span>
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Real-time monitoring of laboratory equipment and compliance status
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AIStatusWidget />
-        </CardContent>
-      </Card>
-
-      {/* Key Benefits */}
-      <Card className="glass-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white text-xl flex items-center space-x-2">
-            <Lightbulb className="h-5 w-5 text-yellow-400" />
-            <span>Key Benefits</span>
-          </CardTitle>
+          <CardTitle>How to Use the Demo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Proactive Alerts</h3>
-              <p className="text-gray-400 text-sm">
-                Get notified before equipment issues become problems
+            <div className="space-y-2">
+              <h4 className="font-medium text-blue-600">1. Start a Conversation</h4>
+              <p className="text-sm text-gray-600">
+                Type or use voice commands to ask about laboratory compliance, protocols, or safety procedures.
               </p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Brain className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Smart Insights</h3>
-              <p className="text-gray-400 text-sm">
-                AI-powered recommendations for lab optimization
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-green-600">2. Access Compliance Tools</h4>
+              <p className="text-sm text-gray-600">
+                Switch to the "Compliance Tools" tab or ask the AI to open specific validation tools.
               </p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Compliance Assurance</h3>
-              <p className="text-gray-400 text-sm">
-                Automated compliance tracking and reporting
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-purple-600">3. Validate Procedures</h4>
+              <p className="text-sm text-gray-600">
+                Use the integrated tools to validate PCR runs, check media safety, and verify incident protocols.
               </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Call to Action */}
-      <Card className="glass-card border-teal-500/20 bg-gradient-to-r from-teal-500/10 to-cyan-500/10">
-        <CardContent className="p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Ready to Experience the Future?
-          </h2>
-          <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-            The Biomni AI assistant is now integrated into your LabGuard Pro dashboard. 
-            Navigate to any page to see the intelligent assistant in action.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg"
-              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
-              onClick={() => window.location.href = '/dashboard'}
-            >
-              <FlaskConical className="h-5 w-5 mr-2" />
-              Go to Dashboard
-            </Button>
-            <Button 
-              size="lg"
-              variant="outline"
-              className="border-teal-500/30 text-teal-400 hover:bg-teal-500/10"
-            >
-              <Lightbulb className="h-5 w-5 mr-2" />
-              Learn More
-            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 } 

@@ -1,453 +1,385 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { 
-  Brain, 
-  MessageCircle, 
-  Send, 
-  Camera, 
-  FileText, 
-  BarChart3, 
-  Settings,
-  Mic,
-  MicOff,
-  Paperclip,
-  Smile,
-  Bot,
-  User,
-  Sparkles,
-  Lightbulb,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Zap,
-  X,
-  Minimize2,
-  Maximize2,
-  FlaskConical,
-  Microscope,
-  TestTube,
-  Dna
-} from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import React, { useState, useRef, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  Mic, 
+  MicOff, 
+  Send, 
+  Bot, 
+  User, 
+  TestTube, 
+  Thermometer, 
+  Shield, 
+  CheckCircle, 
+  AlertTriangle,
+  Settings,
+  MessageSquare,
+  Zap
+} from 'lucide-react'
+import { PCRVerificationSystem } from '@/components/compliance/PCRVerificationSystem'
+import { BiochemicalMediaValidator } from '@/components/compliance/BiochemicalMediaValidator'
+import { CAPSafetyIncidentVerifier } from '@/components/compliance/CAPSafetyIncidentVerifier'
 
 interface Message {
   id: string
-  type: 'user' | 'assistant' | 'system'
+  type: 'user' | 'assistant'
   content: string
   timestamp: Date
-  actions?: AssistantAction[]
-  attachments?: Attachment[]
-  isTyping?: boolean
+  complianceData?: any
 }
 
-interface AssistantAction {
+interface ComplianceTool {
   id: string
-  label: string
-  icon: React.ReactNode
-  action: () => void
-  color: string
-}
-
-interface Attachment {
-  id: string
-  type: 'image' | 'file' | 'data'
-  url: string
   name: string
-  size: number
-}
-
-interface QuickAction {
-  id: string
-  label: string
   description: string
   icon: React.ReactNode
-  color: string
-  action: () => void
+  component: React.ReactNode
 }
 
-const quickActions: QuickAction[] = [
-  {
-    id: 'analyze-image',
-    label: 'Analyze Image',
-    description: 'Upload a lab image for analysis',
-    icon: <Camera className="w-5 h-5" />,
-    color: 'bg-teal-500',
-    action: () => {}
-  },
-  {
-    id: 'generate-protocol',
-    label: 'Generate Protocol',
-    description: 'Create an experimental protocol',
-    icon: <FileText className="w-5 h-5" />,
-    color: 'bg-emerald-500',
-    action: () => {}
-  },
-  {
-    id: 'analyze-data',
-    label: 'Analyze Data',
-    description: 'Process research data',
-    icon: <BarChart3 className="w-5 h-5" />,
-    color: 'bg-cyan-500',
-    action: () => {}
-  },
-  {
-    id: 'optimize-equipment',
-    label: 'Optimize Equipment',
-    description: 'Improve equipment performance',
-    icon: <Settings className="w-5 h-5" />,
-    color: 'bg-blue-500',
-    action: () => {}
-  }
-]
-
 export function BiomniAssistant() {
-  const { data: session } = useSession() || { data: null }
-  const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: "🧬 Hi! I'm Biomni, your AI laboratory assistant powered by Stanford's Biomni platform. I can help you with image analysis, protocol generation, data analysis, and equipment optimization. What would you like to work on today?",
-      timestamp: new Date(),
-      actions: [
-        {
-          id: 'analyze-image',
-          label: 'Analyze Image',
-          icon: <Camera className="w-4 h-4" />,
-          action: () => handleQuickAction('analyze-image'),
-          color: 'bg-teal-500'
-        },
-        {
-          id: 'generate-protocol',
-          label: 'Generate Protocol',
-          icon: <FileText className="w-4 h-4" />,
-          action: () => handleQuickAction('generate-protocol'),
-          color: 'bg-emerald-500'
-        }
-      ]
-    }
-  ])
-  const [inputValue, setInputValue] = useState('')
   const [isListening, setIsListening] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [inputValue, setInputValue] = useState('')
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [activeTab, setActiveTab] = useState('chat')
+  const [selectedTool, setSelectedTool] = useState<string | null>(null)
+  const recognitionRef = useRef<any>(null)
+
+  const complianceTools: ComplianceTool[] = [
+    {
+      id: 'pcr-verification',
+      name: 'PCR Verification',
+      description: 'Validate PCR run setup against protocols',
+      icon: <TestTube className="h-4 w-4" />,
+      component: <PCRVerificationSystem />
+    },
+    {
+      id: 'media-validation',
+      name: 'Media Validation',
+      description: 'Check biochemical media safety and expiration',
+      icon: <Thermometer className="h-4 w-4" />,
+      component: <BiochemicalMediaValidator />
+    },
+    {
+      id: 'incident-verification',
+      name: 'Safety Incident Verification',
+      description: 'Verify CAP safety incident protocols',
+      icon: <Shield className="h-4 w-4" />,
+      component: <CAPSafetyIncidentVerifier />
+    }
+  ]
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    // Initialize speech recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      recognitionRef.current = new SpeechRecognition()
+      recognitionRef.current.continuous = false
+      recognitionRef.current.interimResults = false
+      recognitionRef.current.lang = 'en-US'
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setInputValue(transcript)
+        handleSendMessage(transcript)
+      }
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error)
+        setIsListening(false)
+      }
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false)
+      }
+    }
+
+    // Add welcome message
+    setMessages([
+      {
+        id: '1',
+        type: 'assistant',
+        content: `Hello! I'm Biomni, your AI laboratory compliance assistant. I can help you with:
+
+🔬 **PCR Run Verification** - Validate PCR protocols before execution
+🧪 **Media Safety Inspection** - Check biochemical media expiration and contamination
+🛡️ **Safety Incident Verification** - Ensure CAP compliance for incidents
+
+You can also ask me questions about laboratory procedures, compliance requirements, or use voice commands. How can I assist you today?`,
+        timestamp: new Date()
+      }
+    ])
+  }, [])
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop()
+    } else {
+      recognitionRef.current?.start()
+      setIsListening(true)
+    }
   }
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
-      content: inputValue,
+      content,
       timestamp: new Date()
     }
 
     setMessages(prev => [...prev, userMessage])
     setInputValue('')
-    setIsTyping(true)
+    setIsProcessing(true)
 
-    // Simulate AI response
-    setTimeout(() => {
+    // Check if user wants to access compliance tools
+    const toolKeywords = {
+      'pcr': 'pcr-verification',
+      'pcr verification': 'pcr-verification',
+      'pcr run': 'pcr-verification',
+      'media': 'media-validation',
+      'media validation': 'media-validation',
+      'biochemical': 'media-validation',
+      'incident': 'incident-verification',
+      'safety incident': 'incident-verification',
+      'cap': 'incident-verification',
+      'compliance': 'pcr-verification'
+    }
+
+    const lowerContent = content.toLowerCase()
+    const requestedTool = Object.entries(toolKeywords).find(([keyword]) => 
+      lowerContent.includes(keyword)
+    )?.[1]
+
+    if (requestedTool) {
+      setSelectedTool(requestedTool)
+      setActiveTab('tools')
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: generateResponse(inputValue),
-        timestamp: new Date(),
-        actions: generateActions(inputValue)
-      }
-      setMessages(prev => [...prev, assistantMessage])
-      setIsTyping(false)
-    }, 1500)
-  }
-
-  const generateResponse = (input: string): string => {
-    const lowerInput = input.toLowerCase()
-    
-    if (lowerInput.includes('image') || lowerInput.includes('photo') || lowerInput.includes('picture')) {
-      return "🔬 I can help you analyze laboratory images! I can detect sample quality, equipment conditions, culture growth patterns, and contamination. Would you like to upload an image for analysis?"
-    } else if (lowerInput.includes('protocol') || lowerInput.includes('experiment')) {
-      return "🧪 Great! I can generate experimental protocols for various techniques like PCR, cell culture, sequencing, and more. What type of protocol are you looking for?"
-    } else if (lowerInput.includes('data') || lowerInput.includes('analysis')) {
-      return "📊 I can analyze your research data for trends, anomalies, and insights. What type of data are you working with?"
-    } else if (lowerInput.includes('equipment') || lowerInput.includes('calibration')) {
-      return "⚙️ I can help optimize your laboratory equipment! I can analyze usage patterns, suggest maintenance schedules, and improve performance. What equipment are you working with?"
-    } else {
-      return "🧬 I'm here to help with your laboratory work! I can assist with image analysis, protocol generation, data analysis, and equipment optimization. What would you like to explore?"
-    }
-  }
-
-  const generateActions = (input: string): AssistantAction[] => {
-    const lowerInput = input.toLowerCase()
-    
-    if (lowerInput.includes('image') || lowerInput.includes('photo')) {
-      return [
-        {
-          id: 'upload-image',
-          label: 'Upload Image',
-          icon: <Camera className="w-4 h-4" />,
-          action: () => handleAction('upload-image'),
-          color: 'bg-teal-500'
-        },
-        {
-          id: 'sample-quality',
-          label: 'Sample Quality',
-          icon: <CheckCircle className="w-4 h-4" />,
-          action: () => handleAction('sample-quality'),
-          color: 'bg-emerald-500'
-        }
-      ]
-    } else if (lowerInput.includes('protocol')) {
-      return [
-        {
-          id: 'cell-culture',
-          label: 'Cell Culture',
-          icon: <FileText className="w-4 h-4" />,
-          action: () => handleAction('cell-culture'),
-          color: 'bg-emerald-500'
-        },
-        {
-          id: 'pcr-protocol',
-          label: 'PCR Protocol',
-          icon: <FileText className="w-4 h-4" />,
-          action: () => handleAction('pcr-protocol'),
-          color: 'bg-cyan-500'
-        }
-      ]
-    }
-    
-    return []
-  }
-
-  const handleQuickAction = (actionId: string) => {
-    const action = quickActions.find(a => a.id === actionId)
-    if (action) {
-      const message: Message = {
-        id: Date.now().toString(),
-        type: 'user',
-        content: `I want to ${action.label.toLowerCase()}`,
+        content: `I'll open the ${complianceTools.find(t => t.id === requestedTool)?.name} tool for you. You can now use it to validate your laboratory compliance requirements.`,
         timestamp: new Date()
       }
-      setMessages(prev => [...prev, message])
-      action.action()
+      
+      setMessages(prev => [...prev, assistantMessage])
+      setIsProcessing(false)
+      return
+    }
+
+    // Process AI response
+    try {
+      const response = await processAIResponse(content)
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: response,
+        timestamp: new Date()
+      }
+      
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Error processing message:', error)
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again or use one of the compliance tools directly.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  const handleAction = (actionId: string) => {
-    console.log('Action triggered:', actionId)
-    // Handle specific actions
-  }
+  const processAIResponse = async (userInput: string): Promise<string> => {
+    // Simulate AI processing with compliance knowledge
+    const complianceKeywords = [
+      'pcr', 'protocol', 'validation', 'media', 'expiration', 'contamination',
+      'incident', 'safety', 'cap', 'compliance', 'clia', 'accreditation'
+    ]
 
-  const handleVoiceInput = () => {
-    setIsListening(!isListening)
-    // Implement voice recognition
+    const hasComplianceKeywords = complianceKeywords.some(keyword => 
+      userInput.toLowerCase().includes(keyword)
+    )
+
+    if (hasComplianceKeywords) {
+      return `I can help you with laboratory compliance! Based on your question about "${userInput}", I recommend using one of our specialized compliance tools:
+
+🔬 **PCR Verification** - For protocol validation and run setup
+🧪 **Media Validation** - For checking media safety and expiration  
+🛡️ **Safety Incident Verification** - For CAP compliance assessment
+
+Would you like me to open the appropriate tool for you? Just say "open PCR verification" or "show me media validation" and I'll help you get started.`
+    }
+
+    // General laboratory assistance
+    return `Thank you for your question about "${userInput}". As your AI laboratory assistant, I can help you with:
+
+• Laboratory compliance and safety protocols
+• Equipment calibration and maintenance
+• Quality control procedures
+• Documentation requirements
+• Regulatory standards (CAP, CLIA, OSHA)
+
+For specific compliance validation, I recommend using our specialized tools. You can also ask me to "open PCR verification", "show media validation", or "check safety incidents" for immediate access to compliance tools.`
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      handleSendMessage(inputValue)
     }
   }
 
   return (
-    <>
-      {/* Floating Assistant Button */}
-      {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Button
-            onClick={() => setIsOpen(true)}
-            className="h-16 w-16 rounded-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-lg animate-pulse"
-          >
-            <FlaskConical className="w-8 h-8" />
-          </Button>
-          <div className="absolute -top-2 -right-2">
-            <div className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse"></div>
-          </div>
-          <div className="absolute -bottom-2 -left-2">
-            <Badge className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs">
-              AI
-            </Badge>
-          </div>
-        </div>
-      )}
+    <div className="h-full flex flex-col">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2">
+          <Bot className="h-5 w-5 text-blue-600" />
+          Biomni AI Assistant
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            CAP Accredited
+          </Badge>
+        </CardTitle>
+      </CardHeader>
 
-      {/* Assistant Window */}
-      {isOpen && (
-        <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${
-          isMinimized ? 'w-80 h-12' : 'w-96 h-[600px]'
-        }`}>
-          <Card className="h-full shadow-2xl border-2 border-teal-200 glass-card">
-            <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <FlaskConical className="w-5 h-5 text-teal-600" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="chat" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            AI Chat
+          </TabsTrigger>
+          <TabsTrigger value="tools" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Compliance Tools
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="chat" className="flex-1 flex flex-col space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-4 p-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.type === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {message.type === 'assistant' && (
+                      <Bot className="h-4 w-4 mt-0.5 text-blue-600" />
+                    )}
+                    {message.type === 'user' && (
+                      <User className="h-4 w-4 mt-0.5" />
+                    )}
+                    <div className="whitespace-pre-wrap">{message.content}</div>
                   </div>
-                  <div>
-                    <CardTitle className="text-white text-lg">Biomni Assistant</CardTitle>
-                    <CardDescription className="text-teal-100">
-                      🧬 AI Laboratory Helper
-                    </CardDescription>
+                  <div className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
                   </div>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsMinimized(!isMinimized)}
-                    className="text-white hover:bg-white/20"
-                  >
-                    {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsOpen(false)}
-                    className="text-white hover:bg-white/20"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
-            </CardHeader>
-
-            {!isMinimized && (
-              <CardContent className="p-0 h-full flex flex-col">
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-br from-gray-50 to-blue-50">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
-                        <div className={`flex items-start space-x-2 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            message.type === 'user' 
-                              ? 'bg-teal-500 text-white' 
-                              : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white'
-                          }`}>
-                            {message.type === 'user' ? <User className="w-4 h-4" /> : <FlaskConical className="w-4 h-4" />}
-                          </div>
-                          <div className={`rounded-lg p-3 ${
-                            message.type === 'user' 
-                              ? 'bg-teal-500 text-white' 
-                              : 'bg-white border border-teal-200 shadow-sm'
-                          }`}>
-                            <p className="text-sm">{message.content}</p>
-                            {message.actions && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {message.actions.map((action) => (
-                                  <Button
-                                    key={action.id}
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={action.action}
-                                    className={`text-xs ${action.color} hover:${action.color} border-0`}
-                                  >
-                                    {action.icon}
-                                    <span className="ml-1">{action.label}</span>
-                                  </Button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`text-xs text-gray-500 mt-1 ${message.type === 'user' ? 'text-right' : ''}`}>
-                          {message.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
+            ))}
+            {isProcessing && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-blue-600" />
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
-                  ))}
-                  
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="flex items-center space-x-2 bg-white rounded-lg p-3 border border-teal-200 shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center">
-                          <FlaskConical className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Quick Actions */}
-                <div className="p-4 bg-white border-t border-teal-200">
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {quickActions.map((action) => (
-                      <Button
-                        key={action.id}
-                        variant="outline"
-                        size="sm"
-                        onClick={action.action}
-                        className="text-xs h-auto p-2 flex flex-col items-center space-y-1 border-teal-200 hover:border-teal-300"
-                      >
-                        <div className={`w-6 h-6 rounded-full ${action.color} flex items-center justify-center text-white`}>
-                          {action.icon}
-                        </div>
-                        <span className="text-xs">{action.label}</span>
-                      </Button>
-                    ))}
-                  </div>
-
-                  {/* Input Area */}
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleVoiceInput}
-                      className={`${isListening ? 'bg-red-500 text-white' : 'border-teal-200 hover:border-teal-300'}`}
-                    >
-                      {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    </Button>
-                    <Input
-                      ref={inputRef}
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask me anything about your lab work..."
-                      className="flex-1 border-teal-200 focus:border-teal-500 focus:ring-teal-500"
-                    />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!inputValue.trim()}
-                      size="sm"
-                      className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
-              </CardContent>
+              </div>
             )}
-          </Card>
-        </div>
-      )}
-    </>
+          </div>
+
+          <div className="p-4 border-t">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleListening}
+                className={isListening ? 'bg-red-100 text-red-600' : ''}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <div className="flex-1 relative">
+                <Textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask me about laboratory compliance, or say 'open PCR verification' to use compliance tools..."
+                  className="pr-12 resize-none"
+                  rows={1}
+                />
+                <Button
+                  size="icon"
+                  className="absolute right-2 top-2 h-6 w-6"
+                  onClick={() => handleSendMessage(inputValue)}
+                  disabled={!inputValue.trim() || isProcessing}
+                >
+                  <Send className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="tools" className="flex-1 flex flex-col">
+          {selectedTool ? (
+            <div className="flex-1 overflow-y-auto p-4">
+              {complianceTools.find(t => t.id === selectedTool)?.component}
+            </div>
+          ) : (
+            <div className="flex-1 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {complianceTools.map((tool) => (
+                  <Card
+                    key={tool.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setSelectedTool(tool.id)}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        {tool.icon}
+                        {tool.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600">{tool.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <Alert className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Select a compliance tool above to validate your laboratory procedures and ensure regulatory compliance.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 } 
