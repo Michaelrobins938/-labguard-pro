@@ -1,316 +1,277 @@
 'use client'
 
+import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { QuickAccessWidget } from '@/components/dashboard/QuickAccessWidget'
 import { 
-  FlaskConical, 
-  Calendar, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp,
+  TestTube, 
+  Thermometer, 
+  Shield, 
+  Bot, 
+  TrendingUp, 
+  AlertTriangle,
+  CheckCircle,
+  Clock,
   Users,
-  FileText,
-  Settings,
-  Plus,
-  Search,
-  Bell
+  FlaskConical
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function DashboardPage() {
-  const router = useRouter()
-
-  const quickActions = [
-    {
-      title: 'New Calibration',
-      description: 'Schedule equipment calibration',
-      icon: Settings,
-      href: '/dashboard/calibrations/new',
-      color: 'from-blue-500 to-purple-600'
-    },
-    {
-      title: 'Add Equipment',
-      description: 'Register new equipment',
-      icon: FlaskConical,
-      href: '/dashboard/equipment/new',
-      color: 'from-green-500 to-teal-600'
-    },
-    {
-      title: 'View Reports',
-      description: 'Compliance reports',
-      icon: FileText,
-      href: '/dashboard/reports',
-      color: 'from-orange-500 to-red-600'
-    },
-    {
-      title: 'AI Assistant',
-      description: 'Get AI insights',
-      icon: TrendingUp,
-      href: '/dashboard/ai',
-      color: 'from-purple-500 to-pink-600'
-    },
-    {
-      title: 'Biomni AI',
-      description: 'Advanced laboratory intelligence',
-      icon: TrendingUp,
-      href: '/dashboard/biomni',
-      color: 'from-indigo-500 to-blue-600'
-    }
-  ]
-
-  const stats = [
-    {
-      title: 'Total Equipment',
-      value: '24',
-      change: '+2',
-      changeType: 'positive',
-      icon: FlaskConical
-    },
-    {
-      title: 'Pending Calibrations',
-      value: '3',
-      change: '-1',
-      changeType: 'negative',
-      icon: Calendar
-    },
-    {
-      title: 'Compliance Score',
-      value: '98%',
-      change: '+2%',
-      changeType: 'positive',
-      icon: CheckCircle
-    },
-    {
-      title: 'Team Members',
-      value: '8',
-      change: '+1',
-      changeType: 'positive',
-      icon: Users
-    }
-  ]
-
-  const recentActivities = [
-    {
-      title: 'Calibration Completed',
-      description: 'pH Meter calibration completed successfully',
-      time: '2 hours ago',
-      type: 'success'
-    },
-    {
-      title: 'Equipment Added',
-      description: 'New spectrophotometer registered',
-      time: '4 hours ago',
-      type: 'info'
-    },
-    {
-      title: 'Calibration Due',
-      description: 'Microscope calibration due in 3 days',
-      time: '1 day ago',
-      type: 'warning'
-    }
-  ]
-
   return (
-    <div className="space-y-6 mobile-spacing">
-      {/* Mobile Header */}
-      <div className="md:hidden">
-        <h1 className="mobile-heading text-white mb-2">Dashboard</h1>
-        <p className="mobile-text text-gray-400">Welcome back! Here's your laboratory overview.</p>
-      </div>
-
-      {/* Desktop Header */}
-      <div className="hidden md:block">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400 mt-2">Welcome back! Here's your laboratory overview.</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" className="hidden lg:flex">
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </Button>
-            <Button variant="outline" className="relative">
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications
-              <Badge variant="destructive" className="ml-2">3</Badge>
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Welcome Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back, Dr. Chen</h1>
+          <p className="text-gray-600 mt-2">
+            Your laboratory compliance dashboard is ready. Here's what's happening today.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            All Systems Operational
+          </Badge>
         </div>
       </div>
 
-      {/* Quick Actions - Mobile Grid */}
-      <div className="mobile-grid-2 md:grid-cols-4 gap-4">
-        {quickActions.map((action) => (
-          <Card key={action.title} className="mobile-card hover:bg-slate-700/50 transition-all duration-200 cursor-pointer" onClick={() => router.push(action.href)}>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${action.color} flex items-center justify-center`}>
-                  <action.icon className="w-5 h-5 text-white" />
+      {/* Quick Access Widget */}
+      <QuickAccessWidget />
+
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Equipment Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FlaskConical className="h-5 w-5" />
+                Equipment Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">PCR Machine #1</p>
+                      <p className="text-sm text-gray-600">Operational</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700">Online</Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    <div>
+                      <p className="font-medium">Centrifuge #2</p>
+                      <p className="text-sm text-gray-600">Calibration Due</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-yellow-100 text-yellow-700">Warning</Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium">Microscope #3</p>
+                      <p className="text-sm text-gray-600">Operational</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-blue-100 text-blue-700">Online</Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">Incubator #1</p>
+                      <p className="text-sm text-gray-600">Operational</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700">Online</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <TestTube className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">PCR run completed</p>
+                    <p className="text-sm text-gray-600">COVID-19 RT-PCR - 24 samples processed</p>
+                  </div>
+                  <span className="text-sm text-gray-500">2 hours ago</span>
+                </div>
+
+                <div className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Thermometer className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Media validation</p>
+                    <p className="text-sm text-gray-600">156 media lots checked for expiration</p>
+                  </div>
+                  <span className="text-sm text-gray-500">4 hours ago</span>
+                </div>
+
+                <div className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">AI Assistant used</p>
+                    <p className="text-sm text-gray-600">Protocol validation assistance provided</p>
+                  </div>
+                  <span className="text-sm text-gray-500">6 hours ago</span>
+                </div>
+
+                <div className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium">Safety incident reported</p>
+                    <p className="text-sm text-gray-600">Minor chemical spill - properly contained</p>
+                  </div>
+                  <span className="text-sm text-gray-500">1 day ago</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Sidebar */}
+        <div className="space-y-6">
+          {/* Compliance Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                Compliance Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">CAP Accreditation</span>
+                <Badge className="bg-green-100 text-green-700">Active</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">CLIA Certification</span>
+                <Badge className="bg-green-100 text-green-700">Valid</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Safety Protocols</span>
+                <Badge className="bg-green-100 text-green-700">Compliant</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Quality Control</span>
+                <Badge className="bg-yellow-100 text-yellow-700">Review Due</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Team Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-blue-600">SC</span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="mobile-subheading text-white font-medium">{action.title}</h3>
-                  <p className="mobile-text text-gray-400">{action.description}</p>
+                  <p className="text-sm font-medium">Dr. Sarah Chen</p>
+                  <p className="text-xs text-gray-600">PCR verification completed</p>
                 </div>
+                <span className="text-xs text-gray-500">2h</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-green-600">MJ</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Mike Johnson</p>
+                  <p className="text-xs text-gray-600">Media validation in progress</p>
+                </div>
+                <span className="text-xs text-gray-500">4h</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-purple-600">AL</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Dr. Alex Lee</p>
+                  <p className="text-xs text-gray-600">Safety incident report filed</p>
+                </div>
+                <span className="text-xs text-gray-500">1d</span>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Stats Grid */}
-      <div className="mobile-grid md:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="mobile-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="mobile-text text-gray-400">{stat.title}</p>
-                  <p className="mobile-heading text-white font-bold">{stat.value}</p>
-                  <div className="flex items-center space-x-1 mt-1">
-                    <span className={`text-xs ${stat.changeType === 'positive' ? 'text-green-400' : 'text-red-400'}`}>
-                      {stat.change}
-                    </span>
-                    <span className="mobile-text text-gray-400">from last month</span>
-                  </div>
-                </div>
-                <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center">
-                  <stat.icon className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link href="/dashboard/compliance?tool=pcr">
+                <Button variant="outline" className="w-full justify-start">
+                  <TestTube className="h-4 w-4 mr-2" />
+                  PCR Verification
+                </Button>
+              </Link>
+              
+              <Link href="/dashboard/compliance?tool=media">
+                <Button variant="outline" className="w-full justify-start">
+                  <Thermometer className="h-4 w-4 mr-2" />
+                  Media Validation
+                </Button>
+              </Link>
+              
+              <Link href="/dashboard/ai-assistant-demo">
+                <Button variant="outline" className="w-full justify-start">
+                  <Bot className="h-4 w-4 mr-2" />
+                  AI Assistant
+                </Button>
+              </Link>
+              
+              <Link href="/dashboard/compliance?tool=incident">
+                <Button variant="outline" className="w-full justify-start">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Safety Incidents
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="mobile-grid lg:grid-cols-3 gap-6">
-        {/* Compliance Overview */}
-        <Card className="mobile-card lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="mobile-heading text-white">Compliance Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="mobile-text text-gray-400">Overall Compliance</span>
-                <span className="mobile-text text-white font-semibold">98%</span>
-              </div>
-              <Progress value={98} className="h-2" />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                <CheckCircle className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                <p className="mobile-text text-green-400 font-medium">Compliant</p>
-                <p className="mobile-text text-gray-400">22 items</p>
-              </div>
-              <div className="text-center p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                <AlertTriangle className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-                <p className="mobile-text text-yellow-400 font-medium">Due Soon</p>
-                <p className="mobile-text text-gray-400">3 items</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card className="mobile-card">
-          <CardHeader>
-            <CardTitle className="mobile-heading text-white">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className={`w-2 h-2 rounded-full mt-2 ${
-                    activity.type === 'success' ? 'bg-green-400' :
-                    activity.type === 'warning' ? 'bg-yellow-400' :
-                    'bg-blue-400'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="mobile-text text-white font-medium">{activity.title}</p>
-                    <p className="mobile-text text-gray-400">{activity.description}</p>
-                    <p className="mobile-text text-gray-500 text-xs">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Upcoming Calibrations */}
-      <Card className="mobile-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="mobile-heading text-white">Upcoming Calibrations</CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push('/dashboard/calibrations')}
-              className="mobile-button-secondary"
-            >
-              View All
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                  <Settings className="w-5 h-5 text-yellow-400" />
-                </div>
-                <div>
-                  <p className="mobile-text text-white font-medium">Microscope</p>
-                  <p className="mobile-text text-gray-400">Due in 3 days</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-                Due Soon
-              </Badge>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                  <Settings className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="mobile-text text-white font-medium">Centrifuge</p>
-                  <p className="mobile-text text-gray-400">Due in 1 week</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="text-blue-400 border-blue-400">
-                Scheduled
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Mobile Quick Actions */}
-      <div className="md:hidden">
-        <div className="flex space-x-2">
-          <Button 
-            className="flex-1 mobile-button-primary"
-            onClick={() => router.push('/dashboard/calibrations/new')}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Calibration
-          </Button>
-          <Button 
-            variant="outline"
-            className="flex-1 mobile-button-secondary"
-            onClick={() => router.push('/dashboard/equipment/new')}
-          >
-            <FlaskConical className="w-4 h-4 mr-2" />
-            Add Equipment
-          </Button>
         </div>
       </div>
     </div>

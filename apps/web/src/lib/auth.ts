@@ -1,27 +1,6 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-
-// Demo users for testing
-const demoUsers = [
-  {
-    id: '1',
-    email: 'demo@labguard.com',
-    password: 'demo123',
-    name: 'Demo User',
-    role: 'ADMIN',
-    laboratoryId: 'lab-1',
-    laboratoryName: 'Demo Laboratory'
-  },
-  {
-    id: '2', 
-    email: 'admin@labguard.com',
-    password: 'admin123',
-    name: 'Admin User',
-    role: 'ADMIN',
-    laboratoryId: 'lab-1',
-    laboratoryName: 'Demo Laboratory'
-  }
-]
+import { AuthService } from './auth-service'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -36,23 +15,61 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password required')
         }
 
-        // Find demo user
-        const user = demoUsers.find(u => 
-          u.email.toLowerCase() === credentials.email.toLowerCase() &&
-          u.password === credentials.password
-        )
+        try {
+          // Find user by email
+          const user = await AuthService.findUserByEmail(credentials.email)
 
-        if (!user) {
-          throw new Error('Invalid credentials')
-        }
+          if (!user || !user.hashedPassword) {
+            throw new Error('Invalid credentials')
+          }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          laboratoryId: user.laboratoryId,
-          laboratoryName: user.laboratoryName
+          // Check if account is active
+          if (!user.isActive || user.deletedAt) {
+            throw new Error('Account is deactivated')
+          }
+
+          // Check if laboratory is active
+          if (!user.laboratory?.isActive) {
+            throw new Error('Laboratory account is deactivated')
+          }
+
+          // Check if account is locked
+          if (user.lockedUntil && user.lockedUntil > new Date()) {
+            throw new Error('Account is temporarily locked due to too many failed login attempts')
+          }
+
+          // Verify password
+          const isPasswordValid = await AuthService.comparePassword(
+            credentials.password,
+            user.hashedPassword
+          )
+
+          if (!isPasswordValid) {
+            // Increment failed login attempts
+            await AuthService.incrementFailedLoginAttempts(user.id)
+            throw new Error('Invalid credentials')
+          }
+
+          // Reset failed login attempts on successful login
+          await AuthService.resetFailedLoginAttempts(user.id)
+
+          // Update last login
+          await AuthService.updateLastLogin(user.id)
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            laboratoryId: user.laboratoryId,
+            laboratoryName: user.laboratory.name,
+            emailVerified: user.emailVerified
+          }
+        } catch (error) {
+          console.error('Authentication error:', error)
+          throw error
         }
       }
     })
@@ -70,6 +87,9 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.laboratoryId = user.laboratoryId
         token.laboratoryName = user.laboratoryName
+        token.emailVerified = user.emailVerified
+        token.firstName = user.firstName
+        token.lastName = user.lastName
       }
       return token
     },
@@ -79,12 +99,16 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
         session.user.laboratoryId = token.laboratoryId as string
         session.user.laboratoryName = token.laboratoryName as string
+        session.user.emailVerified = token.emailVerified as boolean
+        session.user.firstName = token.firstName as string
+        session.user.lastName = token.lastName as string
       }
       return session
     }
   },
   pages: {
     signIn: '/auth/login',
+    signUp: '/auth/register',
     error: '/auth/error'
   },
   secret: process.env.NEXTAUTH_SECRET || 'labguard-pro-secret-key-2024-development'

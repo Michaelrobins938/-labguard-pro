@@ -1,192 +1,481 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { PCRVerificationSystem } from '@/components/compliance/PCRVerificationSystem'
-import { BiochemicalMediaValidator } from '@/components/compliance/BiochemicalMediaValidator'
-import { CAPSafetyIncidentVerifier } from '@/components/compliance/CAPSafetyIncidentVerifier'
-import { Shield, TestTube, Thermometer, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { 
+  BookOpen, 
+  Shield, 
+  CheckCircle, 
+  AlertTriangle, 
+  TrendingUp, 
+  FileText,
+  Settings,
+  Users,
+  Activity,
+  ExternalLink
+} from 'lucide-react';
+import Link from 'next/link';
+
+// Compliance system components are now integrated directly in the dashboard
 
 export default function ComplianceDashboard() {
-  const [activeTab, setActiveTab] = useState('pcr')
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Laboratory Compliance Hub</h1>
-          <p className="text-gray-600 mt-2">
-            AI-powered compliance validation tools for laboratory safety and accreditation
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            CAP Accredited
-          </Badge>
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            <Shield className="h-3 w-3 mr-1" />
-            CLIA Certified
-          </Badge>
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Compliance Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Monitor and manage laboratory compliance across all operational areas
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Link href="/resources/documentation/compliance-tools">
+              <Button variant="outline">
+                <BookOpen className="w-4 h-4 mr-2" />
+                View Documentation
+              </Button>
+            </Link>
+            <Button>
+              <Settings className="w-4 h-4 mr-2" />
+              Configure Tools
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <TestTube className="h-4 w-4" />
-              PCR Verification
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">24</div>
-            <p className="text-xs text-gray-600">Runs validated today</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Compliance Score</p>
+                <p className="text-2xl font-bold text-gray-900">94.2%</p>
+                <p className="text-xs text-green-600">+2.1% from last month</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <Thermometer className="h-4 w-4" />
-              Media Validation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">156</div>
-            <p className="text-xs text-gray-600">Media lots checked</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Shield className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Active Tools</p>
+                <p className="text-2xl font-bold text-gray-900">24</p>
+                <p className="text-xs text-blue-600">All systems operational</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <AlertTriangle className="h-4 w-4" />
-              Safety Incidents
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">2</div>
-            <p className="text-xs text-gray-600">Incidents this month</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pending Actions</p>
+                <p className="text-2xl font-bold text-gray-900">3</p>
+                <p className="text-xs text-yellow-600">Requires attention</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Audit Readiness</p>
+                <p className="text-2xl font-bold text-gray-900">98.5%</p>
+                <p className="text-xs text-purple-600">Ready for inspection</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="pcr" className="flex items-center gap-2">
-            <TestTube className="h-4 w-4" />
-            PCR Verification
-          </TabsTrigger>
-          <TabsTrigger value="media" className="flex items-center gap-2">
-            <Thermometer className="h-4 w-4" />
-            Media Validation
-          </TabsTrigger>
-          <TabsTrigger value="incident" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Safety Incidents
-          </TabsTrigger>
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="samples">Samples</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="audit">Audit Prep</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pcr" className="space-y-4">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-sm">Temperature Calibration Completed</p>
+                        <p className="text-xs text-gray-600">Incubator #3 - 2 hours ago</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800">Passed</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                      <div>
+                        <p className="font-medium text-sm">pH Meter Calibration Due</p>
+                        <p className="text-xs text-gray-600">pH Meter #2 - Due in 3 days</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-sm">Sample Collection Protocol Updated</p>
+                        <p className="text-xs text-gray-600">Blood Collection - 1 day ago</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-blue-100 text-blue-800">Updated</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Compliance Trends
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Equipment Calibration</span>
+                      <span className="text-sm text-gray-600">96.8%</span>
+                    </div>
+                    <Progress value={96.8} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Sample Handling</span>
+                      <span className="text-sm text-gray-600">92.3%</span>
+                    </div>
+                    <Progress value={92.3} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Result Validation</span>
+                      <span className="text-sm text-gray-600">98.1%</span>
+                    </div>
+                    <Progress value={98.1} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Audit Preparation</span>
+                      <span className="text-sm text-gray-600">94.7%</span>
+                    </div>
+                    <Progress value={94.7} className="h-2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Documentation Quick Access */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TestTube className="h-5 w-5" />
-                PCR Run Setup Verification
+                <BookOpen className="w-5 h-5" />
+                Quick Access to Documentation
               </CardTitle>
-              <p className="text-sm text-gray-600">
-                Verify PCR run setup matches validated protocol before execution, preventing costly reruns and ensuring CLIA compliance
-              </p>
+              <CardDescription>
+                Access comprehensive documentation for all compliance tools
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <PCRVerificationSystem />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link href="/resources/documentation/compliance-tools">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Shield className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">All Tools</p>
+                          <p className="text-xs text-gray-600">Complete documentation</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                
+                <Link href="/resources/documentation/compliance-tools?category=equipment-calibration">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <Settings className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Equipment</p>
+                          <p className="text-xs text-gray-600">Calibration tools</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                
+                <Link href="/resources/documentation/compliance-tools?category=sample-handling">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <FileText className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Samples</p>
+                          <p className="text-xs text-gray-600">Handling protocols</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                
+                <Link href="/resources/documentation/compliance-tools?category=audit-preparation">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 rounded-lg">
+                          <CheckCircle className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Audit Prep</p>
+                          <p className="text-xs text-gray-600">Preparation tools</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="media" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Thermometer className="h-5 w-5" />
-                Biochemical Media Safety Inspector
-              </CardTitle>
-              <p className="text-sm text-gray-600">
-                Prevent use of expired or compromised biochemical test media, ensuring accurate results and CAP compliance
-              </p>
-            </CardHeader>
-            <CardContent>
-              <BiochemicalMediaValidator />
-            </CardContent>
-          </Card>
+        {/* Equipment Tab */}
+        <TabsContent value="equipment" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: 'Temperature Calibration', status: 'active', progress: 100 },
+              { name: 'pH Meter Calibration', status: 'active', progress: 95 },
+              { name: 'Balance Calibration', status: 'active', progress: 88 },
+              { name: 'Pipette Calibration', status: 'active', progress: 92 },
+              { name: 'Microscope Calibration', status: 'active', progress: 100 },
+              { name: 'Centrifuge Calibration', status: 'active', progress: 85 }
+            ].map((tool, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{tool.name}</CardTitle>
+                  <CardDescription>
+                    Equipment calibration validation tool
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Compliance</span>
+                      <Badge className={tool.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {tool.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <Progress value={tool.progress} className="h-2" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Settings className="w-3 h-3 mr-1" />
+                        Configure
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        <TabsContent value="incident" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                CAP Safety Incident Response Validator
-              </CardTitle>
-              <p className="text-sm text-gray-600">
-                Ensure proper CAP safety protocols were followed after laboratory incidents, maintaining accreditation compliance
-              </p>
-            </CardHeader>
-            <CardContent>
-              <CAPSafetyIncidentVerifier />
-            </CardContent>
-          </Card>
+        {/* Samples Tab */}
+        <TabsContent value="samples" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: 'Sample Collection', status: 'active', progress: 94 },
+              { name: 'Sample Storage', status: 'active', progress: 98 },
+              { name: 'Sample Transport', status: 'active', progress: 91 },
+              { name: 'Sample Preparation', status: 'active', progress: 96 },
+              { name: 'Sample Disposal', status: 'active', progress: 89 },
+              { name: 'Chain of Custody', status: 'active', progress: 100 }
+            ].map((tool, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{tool.name}</CardTitle>
+                  <CardDescription>
+                    Sample handling validation tool
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Compliance</span>
+                      <Badge className={tool.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {tool.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <Progress value={tool.progress} className="h-2" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Settings className="w-3 h-3 mr-1" />
+                        Configure
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Results Tab */}
+        <TabsContent value="results" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: 'Result Accuracy', status: 'active', progress: 98 },
+              { name: 'Quality Control', status: 'active', progress: 97 },
+              { name: 'Method Validation', status: 'active', progress: 95 },
+              { name: 'Data Integrity', status: 'active', progress: 100 },
+              { name: 'Report Generation', status: 'active', progress: 93 },
+              { name: 'Result Interpretation', status: 'active', progress: 96 }
+            ].map((tool, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{tool.name}</CardTitle>
+                  <CardDescription>
+                    Result validation tool
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Compliance</span>
+                      <Badge className={tool.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {tool.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <Progress value={tool.progress} className="h-2" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Settings className="w-3 h-3 mr-1" />
+                        Configure
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Audit Tab */}
+        <TabsContent value="audit" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { name: 'Documentation Compliance', status: 'active', progress: 96 },
+              { name: 'Personnel Qualification', status: 'active', progress: 94 },
+              { name: 'Facility Compliance', status: 'active', progress: 98 },
+              { name: 'Equipment Inventory', status: 'active', progress: 92 },
+              { name: 'Quality Management', status: 'active', progress: 95 },
+              { name: 'Audit Trail', status: 'active', progress: 100 }
+            ].map((tool, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{tool.name}</CardTitle>
+                  <CardDescription>
+                    Audit preparation tool
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Compliance</span>
+                      <Badge className={tool.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                        {tool.status === 'active' ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </div>
+                    <Progress value={tool.progress} className="h-2" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Settings className="w-3 h-3 mr-1" />
+                        Configure
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent Compliance Activities
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-900">PCR Run Approved</p>
-                  <p className="text-sm text-green-700">COVID-19 RT-PCR run validated successfully</p>
-                </div>
-              </div>
-              <span className="text-sm text-green-600">2 minutes ago</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="font-medium text-yellow-900">Media Expiration Warning</p>
-                  <p className="text-sm text-yellow-700">Catalase test media expires in 3 days</p>
-                </div>
-              </div>
-              <span className="text-sm text-yellow-600">15 minutes ago</span>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-blue-900">Incident Report Filed</p>
-                  <p className="text-sm text-blue-700">Minor chemical spill properly documented</p>
-                </div>
-              </div>
-              <span className="text-sm text-blue-600">1 hour ago</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
-  )
+  );
 } 

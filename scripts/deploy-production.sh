@@ -1,9 +1,12 @@
 #!/bin/bash
 
-# LabGuard Pro Production Deployment Script
-# This script handles the complete production deployment process
+# 🚀 LabGuard Pro - Production Deployment Script
+# This script helps automate the production deployment process
 
 set -e  # Exit on any error
+
+echo "🚀 LabGuard Pro - Production Deployment Script"
+echo "=============================================="
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,277 +15,244 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-PROJECT_NAME="labguard-pro"
-DEPLOYMENT_ENV="production"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_DIR="/backups"
-LOG_DIR="/logs"
-DOCKER_REGISTRY="your-registry.com"
-
-# Logging function
-log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-warn() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
-    exit 1
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-info() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')] INFO: $1${NC}"
-}
-
-# Check if running as root
-check_root() {
-    if [[ $EUID -eq 0 ]]; then
-        error "This script should not be run as root"
-    fi
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
 # Check prerequisites
 check_prerequisites() {
-    log "Checking prerequisites..."
+    print_status "Checking prerequisites..."
     
-    # Check Docker
-    if ! command -v docker &> /dev/null; then
-        error "Docker is not installed"
+    # Check if Node.js is installed
+    if ! command -v node &> /dev/null; then
+        print_error "Node.js is not installed. Please install Node.js 18+ and try again."
+        exit 1
     fi
     
-    # Check Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
-        error "Docker Compose is not installed"
+    # Check if npm is installed
+    if ! command -v npm &> /dev/null; then
+        print_error "npm is not installed. Please install npm and try again."
+        exit 1
     fi
     
-    # Check if .env.production exists
-    if [ ! -f ".env.production" ]; then
-        error ".env.production file not found"
+    # Check if git is installed
+    if ! command -v git &> /dev/null; then
+        print_error "git is not installed. Please install git and try again."
+        exit 1
     fi
     
-    log "Prerequisites check passed"
+    print_success "Prerequisites check passed"
 }
 
-# Create backup
-create_backup() {
-    log "Creating database backup..."
+# Generate production secrets
+generate_secrets() {
+    print_status "Generating production secrets..."
     
-    mkdir -p "$BACKUP_DIR"
+    # Generate JWT secret
+    JWT_SECRET=$(openssl rand -base64 32)
+    echo "JWT_SECRET=$JWT_SECRET" >> .env.production
     
-    # Database backup
-    docker-compose exec -T postgres pg_dump -U labguard_user labguard_production > "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
+    # Generate NextAuth secret
+    NEXTAUTH_SECRET=$(openssl rand -base64 32)
+    echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .env.production
     
-    # File backup
-    tar -czf "$BACKUP_DIR/files_backup_$TIMESTAMP.tar.gz" -C ./uploads .
+    # Generate database password
+    DB_PASSWORD=$(openssl rand -base64 32)
+    echo "DB_PASSWORD=$DB_PASSWORD" >> .env.production
     
-    # Clean old backups (keep last 7 days)
-    find "$BACKUP_DIR" -name "*.sql" -mtime +7 -delete
-    find "$BACKUP_DIR" -name "*.tar.gz" -mtime +7 -delete
-    
-    log "Backup completed"
+    print_success "Production secrets generated and saved to .env.production"
 }
 
-# Run database migrations
-run_migrations() {
-    log "Running database migrations..."
+# Setup production environment
+setup_production_env() {
+    print_status "Setting up production environment..."
     
-    # Generate Prisma client
-    docker-compose exec -T api npm run db:generate
-    
-    # Run migrations
-    docker-compose exec -T api npm run db:migrate
-    
-    log "Database migrations completed"
+    # Create production environment file
+    cat > .env.production << EOF
+# LabGuard Pro - Production Environment
+NODE_ENV=production
+
+# Database Configuration
+DATABASE_URL=postgresql://labguard_user:${DB_PASSWORD}@your-db-host:5432/labguard_pro
+
+# Authentication
+NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRES_IN=7d
+
+# API Configuration
+API_BASE_URL=https://your-api-domain.com/api
+NEXT_PUBLIC_API_URL=https://your-api-domain.com
+
+# AI Services
+OPENAI_API_KEY=your-production-openai-api-key
+NEXT_PUBLIC_BIOMNI_API_KEY=your-biomni-api-key
+NEXT_PUBLIC_BIOMNI_ENVIRONMENT=production
+
+# Payment Processing (Stripe)
+STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-publishable-key
+STRIPE_SECRET_KEY=sk_live_your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+
+# Email Service (SendGrid)
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=your-sendgrid-api-key
+SMTP_FROM=noreply@yourdomain.com
+
+# SMS Service (Twilio)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+
+# Redis (for caching and sessions)
+REDIS_URL=redis://your-redis-host:6379
+
+# Security
+CORS_ORIGIN=https://your-domain.com
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Monitoring
+SENTRY_DSN=your-sentry-dsn
+LOG_LEVEL=info
+
+# Feature Flags
+ENABLE_AI_COMPLIANCE=true
+ENABLE_BIOMNI_INTEGRATION=true
+ENABLE_SMS_NOTIFICATIONS=true
+ENABLE_EMAIL_NOTIFICATIONS=true
+EOF
+
+    print_success "Production environment file created"
+    print_warning "Please update .env.production with your actual production values"
 }
 
-# Build and deploy services
-deploy_services() {
-    log "Building and deploying services..."
+# Install dependencies
+install_dependencies() {
+    print_status "Installing dependencies..."
     
-    # Pull latest images
-    docker-compose pull
+    npm ci --production=false
     
-    # Build services
-    docker-compose -f docker-compose.prod.yml build --no-cache
-    
-    # Deploy with zero downtime
-    docker-compose -f docker-compose.prod.yml up -d --remove-orphans
-    
-    log "Services deployed successfully"
+    print_success "Dependencies installed"
 }
 
-# Health checks
-health_checks() {
-    log "Running health checks..."
+# Build applications
+build_applications() {
+    print_status "Building applications..."
     
-    # Wait for services to be ready
-    sleep 30
+    # Build backend
+    print_status "Building backend API..."
+    npm run build:backend
     
-    # Check API health
-    if ! curl -f http://localhost:3001/health > /dev/null 2>&1; then
-        error "API health check failed"
-    fi
+    # Build frontend
+    print_status "Building frontend..."
+    npm run build:frontend
     
-    # Check web app health
-    if ! curl -f http://localhost:3000 > /dev/null 2>&1; then
-        error "Web app health check failed"
-    fi
-    
-    # Check database connection
-    if ! docker-compose exec -T postgres pg_isready -U labguard_user > /dev/null 2>&1; then
-        error "Database health check failed"
-    fi
-    
-    # Check Redis connection
-    if ! docker-compose exec -T redis redis-cli ping > /dev/null 2>&1; then
-        error "Redis health check failed"
-    fi
-    
-    log "All health checks passed"
-}
-
-# Update SSL certificates
-update_ssl() {
-    log "Updating SSL certificates..."
-    
-    # Check if certbot is available
-    if command -v certbot &> /dev/null; then
-        # Renew certificates
-        certbot renew --quiet
-        
-        # Reload nginx
-        docker-compose exec nginx nginx -s reload
-    else
-        warn "Certbot not found, skipping SSL renewal"
-    fi
-}
-
-# Monitor deployment
-monitor_deployment() {
-    log "Monitoring deployment..."
-    
-    # Check service status
-    docker-compose -f docker-compose.prod.yml ps
-    
-    # Check logs for errors
-    log "Checking for errors in logs..."
-    if docker-compose -f docker-compose.prod.yml logs --tail=50 | grep -i error; then
-        warn "Errors found in logs"
-    fi
-    
-    # Check resource usage
-    log "Resource usage:"
-    docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+    print_success "Applications built successfully"
 }
 
 # Run tests
 run_tests() {
-    log "Running post-deployment tests..."
+    print_status "Running tests..."
     
-    # API tests
-    docker-compose exec -T api npm test -- --passWithNoTests
+    npm run test
     
-    # Web app tests
-    docker-compose exec -T web npm test -- --passWithNoTests
-    
-    log "Tests completed"
+    print_success "Tests passed"
 }
 
-# Send notifications
-send_notifications() {
-    log "Sending deployment notifications..."
+# Security audit
+security_audit() {
+    print_status "Running security audit..."
     
-    # Slack notification
-    if [ ! -z "$SLACK_WEBHOOK_URL" ]; then
-        curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\":\"🚀 LabGuard Pro deployment completed successfully at $(date)\"}" \
-            "$SLACK_WEBHOOK_URL"
-    fi
+    npm audit --audit-level moderate
     
-    # Email notification
-    if [ ! -z "$ALERT_EMAIL" ]; then
-        echo "LabGuard Pro deployment completed successfully at $(date)" | \
-        mail -s "Deployment Success - LabGuard Pro" "$ALERT_EMAIL"
-    fi
+    print_success "Security audit completed"
 }
 
-# Rollback function
-rollback() {
-    error "Deployment failed, initiating rollback..."
+# Database setup
+setup_database() {
+    print_status "Setting up database..."
     
-    # Stop new containers
-    docker-compose -f docker-compose.prod.yml down
+    # Generate Prisma client
+    npm run db:generate
     
-    # Start previous version
-    docker-compose up -d
-    
-    # Restore database if needed
-    if [ -f "$BACKUP_DIR/db_backup_$TIMESTAMP.sql" ]; then
-        docker-compose exec -T postgres psql -U labguard_user -d labguard_production < "$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
-    fi
-    
-    error "Rollback completed"
+    print_success "Database setup completed"
+    print_warning "Remember to run migrations on your production database"
 }
 
-# Main deployment function
+# Deployment instructions
+show_deployment_instructions() {
+    echo ""
+    echo "🎯 NEXT STEPS FOR PRODUCTION DEPLOYMENT:"
+    echo "========================================"
+    echo ""
+    echo "1. 📊 SET UP PRODUCTION DATABASE:"
+    echo "   - Create a PostgreSQL database on Railway, Supabase, or AWS RDS"
+    echo "   - Update DATABASE_URL in .env.production"
+    echo "   - Run: npm run db:push"
+    echo ""
+    echo "2. 🚀 DEPLOY BACKEND API:"
+    echo "   - Connect your GitHub repo to Railway/Heroku"
+    echo "   - Set environment variables from .env.production"
+    echo "   - Deploy the apps/api directory"
+    echo ""
+    echo "3. 🌐 DEPLOY FRONTEND:"
+    echo "   - Connect your GitHub repo to Vercel"
+    echo "   - Set environment variables from .env.production"
+    echo "   - Deploy the apps/web directory"
+    echo ""
+    echo "4. 🔐 CONFIGURE SERVICES:"
+    echo "   - Set up Stripe production account"
+    echo "   - Configure SendGrid for emails"
+    echo "   - Set up Twilio for SMS"
+    echo "   - Configure domain and SSL"
+    echo ""
+    echo "5. 📈 SET UP MONITORING:"
+    echo "   - Configure Sentry for error tracking"
+    echo "   - Set up Google Analytics"
+    echo "   - Configure uptime monitoring"
+    echo ""
+    echo "📋 For detailed instructions, see: PRODUCTION_DEPLOYMENT_GUIDE.md"
+    echo ""
+}
+
+# Main execution
 main() {
-    log "Starting LabGuard Pro production deployment..."
+    echo "Starting LabGuard Pro production deployment..."
+    echo ""
     
-    # Set up error handling
-    trap rollback ERR
-    
-    # Run deployment steps
-    check_root
     check_prerequisites
-    create_backup
-    run_migrations
-    deploy_services
-    health_checks
-    update_ssl
+    generate_secrets
+    setup_production_env
+    install_dependencies
+    build_applications
     run_tests
-    monitor_deployment
-    send_notifications
+    security_audit
+    setup_database
+    show_deployment_instructions
     
-    log "Deployment completed successfully!"
-    
-    # Remove error trap
-    trap - ERR
+    echo ""
+    print_success "Production deployment preparation completed!"
+    echo ""
+    print_warning "IMPORTANT: Update .env.production with your actual production values before deploying"
+    echo ""
 }
 
-# Parse command line arguments
-case "${1:-}" in
-    --help|-h)
-        echo "Usage: $0 [OPTIONS]"
-        echo "Options:"
-        echo "  --help, -h     Show this help message"
-        echo "  --backup-only  Only create backup"
-        echo "  --migrate-only Only run migrations"
-        echo "  --test-only    Only run tests"
-        exit 0
-        ;;
-    --backup-only)
-        check_prerequisites
-        create_backup
-        exit 0
-        ;;
-    --migrate-only)
-        check_prerequisites
-        run_migrations
-        exit 0
-        ;;
-    --test-only)
-        check_prerequisites
-        run_tests
-        exit 0
-        ;;
-    "")
-        main
-        ;;
-    *)
-        error "Unknown option: $1"
-        ;;
-esac 
+# Run main function
+main "$@" 

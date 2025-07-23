@@ -1,4 +1,9 @@
 import { Metadata } from 'next'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { BookOpen, Shield, ExternalLink, CheckCircle } from 'lucide-react'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Resources - LabGuard Pro',
@@ -16,21 +21,88 @@ export default function ResourcesPage() {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Documentation */}
-          <div className="enhanced-card">
-            <h3 className="text-2xl font-bold text-white mb-4">Documentation</h3>
-            <p className="text-gray-300 mb-6">
-              Comprehensive guides and tutorials to help you set up and use LabGuard Pro effectively.
-            </p>
-            <ul className="space-y-3 text-gray-300 mb-8">
-              <li>✓ Getting Started Guide</li>
-              <li>✓ User Manual</li>
-              <li>✓ Best Practices</li>
-              <li>✓ Troubleshooting</li>
-            </ul>
-            <button className="enhanced-button-primary w-full">View Docs</button>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Documentation
+              </CardTitle>
+              <CardDescription>
+                Access comprehensive guides and technical documentation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Available Guides</span>
+                  <Badge>12+</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>User Manuals</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>API Documentation</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Best Practices</span>
+                  </div>
+                </div>
+                <Button className="w-full">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Documentation
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Compliance Tools
+              </CardTitle>
+              <CardDescription>
+                Comprehensive laboratory compliance validation system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Available Tools</span>
+                  <Badge>24</Badge>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Equipment Calibration</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Sample Handling</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Result Validation</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Audit Preparation</span>
+                  </div>
+                </div>
+                <Link href="/resources/documentation/compliance-tools">
+                  <Button className="w-full">
+                    <Shield className="w-4 h-4 mr-2" />
+                    View Compliance Tools
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* API Reference */}
           <div className="enhanced-card">

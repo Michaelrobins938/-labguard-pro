@@ -1,160 +1,235 @@
 # LabGuard Pro - Web Application
 
-## Overview
+A comprehensive laboratory management system with AI-powered compliance validation and equipment management.
 
-LabGuard Pro is an AI-powered laboratory compliance automation platform that helps laboratories manage equipment calibrations, pass CAP/CLIA audits, and prevent costly equipment failures.
+## Features
 
-## Current Status
+- **Complete Authentication System**
+  - User registration with email verification
+  - Secure password hashing with bcrypt
+  - Password reset functionality
+  - Role-based access control
+  - Session management with NextAuth.js
 
-✅ **Phase 1 Complete** - Landing page and basic authentication system are functional and ready for beta testing.
+- **Laboratory Management**
+  - Multi-tenant laboratory support
+  - Equipment tracking and calibration
+  - Compliance validation tools
+  - Audit logging and reporting
 
-### Features Implemented
+- **AI-Powered Features**
+  - Biomni AI integration for intelligent assistance
+  - Compliance validation automation
+  - Predictive maintenance insights
+  - Natural language report generation
 
-#### Landing Page
-- Professional, Apple-quality design with modern UI
-- Hero section with clear value proposition
-- Features section highlighting AI-powered validation
-- Pricing section with three tiers (Starter, Professional, Enterprise)
-- Testimonials from satisfied customers
-- Call-to-action sections for user conversion
-- Responsive design for all devices
+## Prerequisites
 
-#### Authentication System
-- User registration with laboratory information
-- Login functionality with mock API endpoints
-- Password validation and security features
-- Role-based access (Admin, Supervisor, Technician, Viewer)
-- Laboratory type selection (Clinical, Research, Industrial, Academic)
-
-#### Dashboard
-- Main dashboard with compliance overview
-- Equipment management interface
-- Calibration scheduling and tracking
-- Reports and analytics
-- Real-time notifications
-- Team collaboration features
-
-#### API Endpoints
-- `/api/auth/login` - User authentication
-- `/api/auth/register` - User registration
-- Mock data for beta testing
-
-## Getting Started
-
-### Prerequisites
 - Node.js 18+ 
+- PostgreSQL 12+
 - npm or yarn
 
-### Installation
+## Environment Setup
+
+1. Copy the environment template:
+```bash
+cp env.local.example .env.local
+```
+
+2. Configure your environment variables in `.env.local`:
+
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/labguard_pro"
+
+# Authentication
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secure-secret-key-here"
+
+# Email (for production)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+SMTP_FROM="noreply@yourdomain.com"
+
+# API Configuration
+API_BASE_URL="http://localhost:3001/api"
+
+# AI Services
+OPENAI_API_KEY="your-openai-api-key"
+NEXT_PUBLIC_BIOMNI_API_KEY="your-biomni-api-key"
+
+# Payment Processing (Stripe)
+STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+## Database Setup
+
+1. Create a PostgreSQL database:
+```sql
+CREATE DATABASE labguard_pro;
+```
+
+2. Run database migrations:
+```bash
+npm run db:push
+```
+
+3. Generate Prisma client:
+```bash
+npm run db:generate
+```
+
+4. Seed the database with initial data:
+```bash
+npm run db:seed
+```
+
+## Installation
 
 1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Create environment file (optional for beta testing):
-```bash
-cp env.local.example .env.local
-```
+2. Set up the database (see Database Setup above)
 
-3. Start development server:
+3. Start the development server:
 ```bash
 npm run dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Beta Testing Instructions
+## Production Deployment
 
-### For Beta Users
+### Vercel Deployment
 
-1. **Landing Page Review**
-   - Visit the homepage and review the design and messaging
-   - Test all navigation links and call-to-action buttons
-   - Verify responsive design on different screen sizes
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
 
-2. **Registration Process**
-   - Click "Get Started" or "Start Free Trial"
-   - Fill out the registration form with test data
-   - Verify form validation works correctly
-   - Test the login process after registration
+### Docker Deployment
 
-3. **Dashboard Experience**
-   - Explore the main dashboard after login
-   - Test navigation between different sections
-   - Review the mock data and analytics
-   - Test responsive design on mobile devices
+1. Build the Docker image:
+```bash
+docker build -t labguard-pro .
+```
 
-4. **Authentication Flow**
-   - Test login with any valid email/password combination
-   - Verify error handling for invalid credentials
-   - Test password visibility toggle
-   - Check "Remember me" functionality
+2. Run with environment variables:
+```bash
+docker run -p 3000:3000 --env-file .env.local labguard-pro
+```
 
-### Known Limitations (Beta Version)
+## Authentication System
 
-- Authentication uses mock data (no real database)
-- API endpoints return mock responses
-- No real email verification
-- Social login buttons are non-functional
-- File uploads and exports are simulated
-- No real payment processing
+The application includes a complete authentication system:
 
-### Testing Checklist
+### User Registration
+- Email verification required
+- Password strength validation
+- Laboratory creation during registration
+- Role assignment (Lab Manager, Technician, etc.)
 
-- [ ] Landing page loads correctly
-- [ ] All navigation links work
-- [ ] Registration form validates properly
-- [ ] Login process works with any credentials
-- [ ] Dashboard displays mock data correctly
-- [ ] Responsive design works on mobile
-- [ ] No console errors in browser
-- [ ] All buttons and interactions work
-- [ ] Loading states display correctly
-- [ ] Error messages are user-friendly
+### Login System
+- Secure password authentication
+- Account lockout protection
+- Session management
+- Remember me functionality
 
-## Technical Stack
+### Password Management
+- Secure password reset via email
+- Password change tracking
+- Failed login attempt monitoring
 
-- **Framework**: Next.js 14 with App Router
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **UI Components**: Custom components with shadcn/ui patterns
-- **TypeScript**: Full type safety
-- **Build Tool**: Turbopack (development)
+### Security Features
+- bcrypt password hashing
+- JWT token management
+- CSRF protection
+- Rate limiting on auth endpoints
 
-## File Structure
+## API Endpoints
 
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login (handled by NextAuth)
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
+- `POST /api/auth/verify-email` - Verify email address
+
+### User Management
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update user profile
+- `GET /api/users/laboratory` - Get laboratory information
+
+## Database Schema
+
+The application uses Prisma with PostgreSQL and includes:
+
+- **Users** - User accounts with roles and permissions
+- **Laboratories** - Multi-tenant laboratory organizations
+- **Equipment** - Laboratory equipment tracking
+- **Calibrations** - Equipment calibration records
+- **Subscriptions** - Billing and subscription management
+- **Audit Logs** - Security and compliance logging
+
+## Development
+
+### Code Structure
 ```
 src/
-├── app/                    # Next.js app router pages
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Dashboard pages
-│   ├── api/               # API routes
-│   └── globals.css        # Global styles
-├── components/            # Reusable components
-│   ├── dashboard/         # Dashboard-specific components
-│   ├── landing/           # Landing page components
-│   └── ui/                # Base UI components
-└── lib/                   # Utility functions
+├── app/                 # Next.js 13+ app directory
+│   ├── api/            # API routes
+│   ├── auth/           # Authentication pages
+│   └── dashboard/      # Dashboard pages
+├── components/         # React components
+├── lib/               # Utility libraries
+└── types/             # TypeScript type definitions
 ```
 
-## Next Steps
+### Key Technologies
+- **Next.js 14** - React framework
+- **TypeScript** - Type safety
+- **Prisma** - Database ORM
+- **NextAuth.js** - Authentication
+- **Tailwind CSS** - Styling
+- **Zod** - Schema validation
 
-After beta testing feedback, Phase 2 will include:
-- Real database integration
-- Email verification system
-- Payment processing
-- File upload functionality
-- Advanced analytics
-- Real-time notifications
-- API integration with backend services
+## Testing
+
+Run the test suite:
+```bash
+npm test
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
+```
+
+Generate coverage report:
+```bash
+npm run test:coverage
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+This project is proprietary software. All rights reserved.
 
 ## Support
 
-For beta testing issues or questions, please contact the development team.
-
----
-
-**Version**: Beta 1.0  
-**Last Updated**: January 2024  
-**Status**: Ready for Beta Testing 
+For support and questions:
+- Email: support@labguard.com
+- Documentation: [docs.labguard.com](https://docs.labguard.com)
+- Issues: GitHub Issues 
