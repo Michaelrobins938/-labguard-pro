@@ -20,14 +20,14 @@ groups:
           summary: "High memory usage on {{ $labels.instance }}"
           description: "Memory usage is above 85% for more than 5 minutes"
 
-      - alert: HighDiskUsage
-        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 90
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
         for: 5m
         labels:
-          severity: warning
+          severity: critical
         annotations:
-          summary: "High disk usage on {{ $labels.instance }}"
-          description: "Disk usage is above 90% for more than 5 minutes"
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is below 10%"
 
       # Application Health Alerts
       - alert: APIDown
@@ -48,124 +48,143 @@ groups:
           summary: "LabGuard Web App is down"
           description: "The web application has been down for more than 1 minute"
 
+      - alert: WorkerDown
+        expr: up{job="labguard-worker"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Background worker is down"
+          description: "The background job processor has been down for more than 1 minute"
+
+      # Database Alerts
       - alert: DatabaseDown
         expr: up{job="postgres"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Database is down"
-          description: "PostgreSQL database has been down for more than 1 minute"
+          summary: "PostgreSQL database is down"
+          description: "The database has been down for more than 1 minute"
 
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connections"
+          description: "Database has more than 80 active connections"
+
+      # Redis Alerts
       - alert: RedisDown
         expr: up{job="redis"} == 0
         for: 1m
         labels:
-          severity: warning
+          severity: critical
         annotations:
           summary: "Redis is down"
           description: "Redis cache has been down for more than 1 minute"
 
-      # Performance Alerts
-      - alert: HighResponseTime
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is above 80%"
+
+      # Business Metrics Alerts
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for more than 5 minutes"
+
+      - alert: SlowResponseTime
         expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High API response time"
+          summary: "Slow response times"
           description: "95th percentile response time is above 2 seconds"
 
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "High error rate"
-          description: "Error rate is above 5% for more than 5 minutes"
-
-      # Business Metrics Alerts
-      - alert: CalibrationFailures
-        expr: rate(calibrations_total{status="failed"}[1h]) > 0.1
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High calibration failure rate"
-          description: "Calibration failure rate is above 10% in the last hour"
-
-      - alert: EquipmentOverdue
-        expr: equipment_status{status="overdue"} > 5
+      - alert: CalibrationOverdue
+        expr: labguard_calibrations_overdue_total > 0
         for: 1h
         labels:
           severity: warning
         annotations:
-          summary: "Equipment overdue for calibration"
-          description: "More than 5 pieces of equipment are overdue for calibration"
+          summary: "Calibrations overdue"
+          description: "There are overdue calibrations that need attention"
 
-      - alert: AIUsageSpike
-        expr: rate(ai_requests_total[5m]) > 100
+      - alert: EquipmentMaintenanceDue
+        expr: labguard_equipment_maintenance_due_total > 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Equipment maintenance due"
+          description: "There is equipment requiring maintenance"
+
+      # AI Service Alerts
+      - alert: AIValidationErrors
+        expr: rate(labguard_ai_validation_errors_total[5m]) > 0.1
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High AI usage detected"
-          description: "AI requests are spiking above 100 per minute"
+          summary: "AI validation errors detected"
+          description: "High rate of AI validation errors"
+
+      - alert: BiomniServiceDown
+        expr: up{job="biomni-service"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Biomni AI service is down"
+          description: "The Biomni AI service has been down for more than 1 minute"
 
       # Security Alerts
       - alert: HighFailedLogins
-        expr: rate(auth_failed_logins_total[5m]) > 10
+        expr: rate(labguard_failed_logins_total[5m]) > 10
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "High failed login attempts"
-          description: "More than 10 failed login attempts per minute"
+          summary: "High rate of failed login attempts"
+          description: "Possible brute force attack detected"
 
       - alert: UnusualAPIUsage
-        expr: rate(http_requests_total[5m]) > 1000
+        expr: rate(labguard_api_requests_total[5m]) > 1000
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "Unusual API usage detected"
-          description: "API requests are significantly higher than normal"
+          description: "API request rate is unusually high"
 
-      # Database Alerts
-      - alert: SlowQueries
-        expr: rate(db_query_duration_seconds_sum[5m]) / rate(db_query_duration_seconds_count[5m]) > 1
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Slow database queries detected"
-          description: "Average query time is above 1 second"
-
-      - alert: DatabaseConnections
-        expr: db_connections_active > 80
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High database connection count"
-          description: "More than 80 active database connections"
-
-      # Subscription Alerts
-      - alert: SubscriptionCancellations
-        expr: rate(subscription_events_total{event="cancelled"}[1h]) > 0.1
-        for: 1h
+      # Infrastructure Alerts
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "High subscription cancellation rate"
-          description: "Subscription cancellation rate is above 10% in the last hour"
+          summary: "Nginx is down"
+          description: "Nginx reverse proxy has been down for more than 1 minute"
 
-      - alert: LowUserActivity
-        expr: rate(user_actions_total[1h]) < 10
-        for: 1h
+      - alert: HighNginxErrorRate
+        expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) * 100 > 5
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Low user activity detected"
-          description: "User activity is below 10 actions per hour" 
+          summary: "High Nginx error rate"
+          description: "Nginx is returning high rate of 5xx errors" 

@@ -51,6 +51,13 @@ export default function DashboardPage() {
       icon: TrendingUp,
       href: '/dashboard/ai',
       color: 'from-purple-500 to-pink-600'
+    },
+    {
+      title: 'Biomni AI',
+      description: 'Advanced laboratory intelligence',
+      icon: TrendingUp,
+      href: '/dashboard/biomni',
+      color: 'from-indigo-500 to-blue-600'
     }
   ]
 

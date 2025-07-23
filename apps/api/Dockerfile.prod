@@ -1,23 +1,19 @@
 # Multi-stage build for production API
 FROM node:18-alpine AS base
 
-# Install dependencies for native modules
-RUN apk add --no-cache python3 make g++
-
-# Set working directory
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
-
-# Build stage
+# Rebuild the source code only when needed
 FROM base AS builder
-
-# Copy source code
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
@@ -26,8 +22,11 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine AS production
+# Production image, copy all the files and run the app
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init curl
@@ -35,9 +34,6 @@ RUN apk add --no-cache dumb-init curl
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
-
-# Set working directory
-WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
@@ -51,9 +47,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/prisma ./prisma
 
 # Create necessary directories
-RUN mkdir -p /app/uploads /app/logs /app/temp
-
-# Change ownership to nodejs user
+RUN mkdir -p /app/logs /app/uploads
 RUN chown -R nodejs:nodejs /app
 
 # Switch to nodejs user
@@ -70,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["node", "dist/server.js"] 
+CMD ["npm", "start"] 

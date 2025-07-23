@@ -12,43 +12,55 @@ alerting:
           - alertmanager:9093
 
 scrape_configs:
-  # LabGuard Pro API
-  - job_name: 'labguard-api'
+  # Prometheus itself
+  - job_name: 'prometheus'
     static_configs:
-      - targets: ['api:4000']
-    metrics_path: '/metrics'
-    scrape_interval: 10s
+      - targets: ['localhost:9090']
 
-  # LabGuard Pro Web
-  - job_name: 'labguard-web'
-    static_configs:
-      - targets: ['web:3000']
-    metrics_path: '/metrics'
-    scrape_interval: 10s
-
-  # PostgreSQL
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['postgres:5432']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  # Redis
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis:6379']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  # Nginx
+  # Nginx metrics
   - job_name: 'nginx'
     static_configs:
       - targets: ['nginx:80']
-    metrics_path: '/nginx_status'
+    metrics_path: /nginx_status
     scrape_interval: 30s
 
-  # Node Exporter (system metrics)
-  - job_name: 'node-exporter'
+  # Node.js applications
+  - job_name: 'labguard-api'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['api:3001']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: 'labguard-web'
+    static_configs:
+      - targets: ['web:3000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Database metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Background worker
+  - job_name: 'labguard-worker'
+    static_configs:
+      - targets: ['worker:3001']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Health checks
+  - job_name: 'health-checks'
+    static_configs:
+      - targets: ['web:3000', 'api:3001', 'worker:3001']
+    metrics_path: /health
     scrape_interval: 30s 

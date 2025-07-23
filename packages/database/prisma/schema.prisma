@@ -29,6 +29,8 @@ model User {
   calibrations  CalibrationRecord[]
   notifications Notification[]
   auditLogs     AuditLog[]
+  reports       Report[]
+  violations    ComplianceViolation[]
 
   // Indexes for performance
   @@index([email])
@@ -57,6 +59,8 @@ model Laboratory {
   subscriptions Subscription[]
   notifications Notification[]
   auditLogs   AuditLog[]
+  reports     Report[]
+  violations  ComplianceViolation[]
 
   // Indexes for performance
   @@index([email])
@@ -85,6 +89,8 @@ model Equipment {
   laboratory      Laboratory       @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
   calibrations    CalibrationRecord[]
   maintenance     MaintenanceRecord[]
+  reports         Report[]
+  violations      ComplianceViolation[]
 
   // Indexes for performance
   @@index([laboratoryId])
@@ -150,6 +156,67 @@ model MaintenanceRecord {
   @@map("maintenance_records")
 }
 
+// Reports
+model Report {
+  id              String      @id @default(cuid())
+  title           String
+  description     String
+  type            ReportType
+  equipmentId     String?
+  equipment       Equipment?  @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  createdById     String
+  createdBy       User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  laboratoryId    String
+  laboratory      Laboratory  @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  status          ReportStatus @default(DRAFT)
+  findings        String?
+  recommendations String?
+  attachments     String?     // JSON string of attachment URLs
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Indexes for performance
+  @@index([equipmentId])
+  @@index([createdById])
+  @@index([laboratoryId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reports")
+}
+
+// Compliance Violations
+model ComplianceViolation {
+  id              String              @id @default(cuid())
+  equipmentId     String
+  equipment       Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  reportedById    String
+  reportedBy      User                @relation(fields: [reportedById], references: [id], onDelete: Cascade)
+  laboratoryId    String
+  laboratory      Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  violationType   String
+  description     String
+  severity        ViolationSeverity
+  status          ViolationStatus    @default(OPEN)
+  correctiveAction String?
+  resolutionNotes String?
+  dueDate         DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Indexes for performance
+  @@index([equipmentId])
+  @@index([reportedById])
+  @@index([laboratoryId])
+  @@index([violationType])
+  @@index([severity])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@map("compliance_violations")
+}
+
 // Notifications
 model Notification {
   id          String           @id @default(cuid())
@@ -184,7 +251,8 @@ model AuditLog {
   action      String      // CREATE, UPDATE, DELETE, LOGIN, etc.
   entity      String      // Equipment, Calibration, User, etc.
   entityId    String?     // ID of the affected entity
-  details     Json?       // Additional details about the action
+  details     String?     // Additional details about the action
+  metadata    Json?       // Additional metadata
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime    @default(now())
@@ -362,6 +430,37 @@ enum MaintenanceStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  OVERDUE
+}
+
+enum ReportType {
+  CALIBRATION
+  MAINTENANCE
+  COMPLIANCE
+  AUDIT
+  INCIDENT
+  GENERAL
+}
+
+enum ReportStatus {
+  DRAFT
+  PENDING
+  COMPLETED
+  ARCHIVED
+}
+
+enum ViolationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ViolationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 enum NotificationType {
@@ -371,6 +470,7 @@ enum NotificationType {
   SYSTEM_ALERT
   USER_INVITE
   SUBSCRIPTION_UPDATE
+  COMPLIANCE_VIOLATION
 }
 
 enum SubscriptionStatus {
