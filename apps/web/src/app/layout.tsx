@@ -1,24 +1,18 @@
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
+import { cn } from '@/lib/utils'
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: 'LabGuard Pro - Laboratory Compliance Automation',
-  description: 'AI-powered laboratory compliance management platform for equipment calibration, validation, and regulatory compliance.',
-  keywords: 'laboratory, compliance, calibration, equipment, AI, validation, regulatory',
-  authors: [{ name: 'LabGuard Pro Team' }],
-  viewport: 'width=device-width, initial-scale=1',
-  robots: 'index, follow',
-  openGraph: {
-    title: 'LabGuard Pro - Laboratory Compliance Automation',
-    description: 'AI-powered laboratory compliance management platform',
-    type: 'website',
-    locale: 'en_US',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'LabGuard Pro - Laboratory Compliance Automation',
-    description: 'AI-powered laboratory compliance management platform',
-  },
+  title: 'LabGuard Pro - AI-Powered Laboratory Compliance',
+  description: 'Revolutionary laboratory management platform with AI-powered compliance automation',
+  keywords: 'laboratory, compliance, AI, equipment, calibration, CAP, CLIA',
 }
 
 export default function RootLayout({
@@ -27,11 +21,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="font-inter">
-        <div className="min-h-screen bg-white">
-          {children}
+    <html lang="en" className={cn(inter.variable, 'dark')}>
+      <body className={cn(
+        'min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900',
+        'font-inter antialiased'
+      )}>
+        {/* Background decoration */}
+        <div className="fixed inset-0 z-[-2]">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900" />
+          <div className="absolute top-0 left-1/4 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}} />
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '4s'}} />
         </div>
+        {children}
       </body>
     </html>
   )
