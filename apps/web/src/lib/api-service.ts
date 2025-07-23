@@ -311,6 +311,10 @@ export const apiService = {
       const response = await apiClient.delete(`/api/api/keys/${id}`)
       return response.data
     },
+    revokeApiKey: async (id: string) => {
+      const response = await apiClient.post(`/api/api/keys/${id}/revoke`)
+      return response.data
+    },
     getApiUsage: async () => {
       const response = await apiClient.get('/api/api/usage')
       return response.data
