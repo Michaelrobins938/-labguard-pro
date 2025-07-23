@@ -1,41 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  Settings, 
-  CheckCircle, 
-  AlertTriangle,
-  Brain,
-  Sparkles,
-  Target,
-  Zap
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { Calendar, Clock, Settings, Brain, AlertTriangle, CheckCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 const calibrationSchema = z.object({
   equipmentId: z.string().min(1, 'Equipment is required'),
-  calibrationType: z.enum(['ROUTINE', 'PREVENTIVE', 'CORRECTIVE', 'EMERGENCY']),
-  scheduledDate: z.date(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  estimatedDuration: z.number().min(15, 'Duration must be at least 15 minutes'),
+  calibrationType: z.string().min(1, 'Calibration type is required'),
+  scheduledDate: z.string().min(1, 'Date is required'),
+  scheduledTime: z.string().min(1, 'Time is required'),
+  priority: z.string().min(1, 'Priority is required'),
+  description: z.string().optional(),
   assignedTo: z.string().optional(),
   specialRequirements: z.string().optional(),
   aiOptimization: z.boolean().default(true)
@@ -43,35 +29,17 @@ const calibrationSchema = z.object({
 
 type CalibrationFormData = z.infer<typeof calibrationSchema>
 
-interface Equipment {
-  id: string
-  name: string
-  model: string
-  type: string
-  lastCalibrated: string | null
-  nextCalibration: string | null
-  status: string
-}
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-}
-
 export default function NewCalibrationPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
   const [aiInsights, setAiInsights] = useState<any>(null)
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isValid }
+    formState: { errors }
   } = useForm<CalibrationFormData>({
     resolver: zodResolver(calibrationSchema),
     defaultValues: {
@@ -79,167 +47,139 @@ export default function NewCalibrationPage() {
     }
   })
 
-  const watchedValues = watch()
+  const watchedEquipment = watch('equipmentId')
+  const watchedCalibrationType = watch('calibrationType')
 
-  // Mock data - replace with API calls
+  // Mock equipment data
   const equipment = [
-    {
-      id: 'eq-001',
-      name: 'Centrifuge #1',
-      model: 'Eppendorf 5810R',
-      type: 'Centrifuge',
-      lastCalibrated: '2024-01-15',
-      nextCalibration: '2024-02-15',
-      status: 'ACTIVE'
-    },
-    {
-      id: 'eq-002',
-      name: 'Spectrophotometer #1',
-      model: 'Thermo Scientific NanoDrop 2000',
-      type: 'Spectrophotometer',
-      lastCalibrated: '2024-01-10',
-      nextCalibration: '2024-02-10',
-      status: 'ACTIVE'
-    },
-    {
-      id: 'eq-003',
-      name: 'Microscope #1',
-      model: 'Olympus BX53',
-      type: 'Microscope',
-      lastCalibrated: '2024-01-20',
-      nextCalibration: '2024-02-20',
-      status: 'ACTIVE'
-    }
+    { id: '1', name: 'pH Meter', type: 'Analytical', location: 'Lab A' },
+    { id: '2', name: 'Microscope', type: 'Optical', location: 'Lab B' },
+    { id: '3', name: 'Centrifuge', type: 'Mechanical', location: 'Lab C' },
+    { id: '4', name: 'Spectrophotometer', type: 'Analytical', location: 'Lab A' }
   ]
 
-  const users = [
-    { id: 'user-001', name: 'Dr. Sarah Johnson', email: 'sarah@lab.com', role: 'Senior Technician' },
-    { id: 'user-002', name: 'Mike Chen', email: 'mike@lab.com', role: 'Technician' },
-    { id: 'user-003', name: 'Dr. Emily Rodriguez', email: 'emily@lab.com', role: 'Lab Manager' }
+  const calibrationTypes = [
+    { value: 'routine', label: 'Routine Calibration', description: 'Standard periodic calibration' },
+    { value: 'preventive', label: 'Preventive Maintenance', description: 'Preventive maintenance calibration' },
+    { value: 'corrective', label: 'Corrective Action', description: 'Corrective action calibration' },
+    { value: 'emergency', label: 'Emergency Calibration', description: 'Emergency calibration due to issues' }
   ]
 
-  const handleEquipmentChange = async (equipmentId: string) => {
-    const selected = equipment.find(eq => eq.id === equipmentId)
-    setSelectedEquipment(selected || null)
+  const priorities = [
+    { value: 'low', label: 'Low', color: 'bg-green-100 text-green-800' },
+    { value: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'high', label: 'High', color: 'bg-orange-100 text-orange-800' },
+    { value: 'critical', label: 'Critical', color: 'bg-red-100 text-red-800' }
+  ]
 
-    if (selected && watchedValues.aiOptimization) {
-      await generateAiInsights(selected)
-    }
-  }
+  const teamMembers = [
+    { id: '1', name: 'Dr. Sarah Chen', role: 'Lab Director' },
+    { id: '2', name: 'Mike Johnson', role: 'Senior Technician' },
+    { id: '3', name: 'Lisa Wang', role: 'Lab Technician' },
+    { id: '4', name: 'David Kim', role: 'Quality Control' }
+  ]
 
-  const generateAiInsights = async (equipment: Equipment) => {
-    try {
-      const response = await fetch('/api/biomni/calibration-insights', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          equipmentId: equipment.id,
-          equipmentType: equipment.type,
-          lastCalibration: equipment.lastCalibrated,
-          calibrationType: watchedValues.calibrationType
-        })
-      })
+  const handleAiInsights = async () => {
+    if (!watchedEquipment || !watchedCalibrationType) return
 
-      if (response.ok) {
-        const insights = await response.json()
-        setAiInsights(insights)
-      }
-    } catch (error) {
-      console.error('Failed to generate AI insights:', error)
-    }
-  }
-
-  const onSubmit = async (data: CalibrationFormData) => {
     setLoading(true)
-    
     try {
-      const response = await fetch('/api/calibrations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...data,
-          aiInsights: aiInsights
-        })
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        router.push(`/dashboard/calibrations/${result.id}/perform`)
-      } else {
-        throw new Error('Failed to create calibration')
+      // Mock AI insights
+      const insights = {
+        recommendations: [
+          'Schedule during low-traffic hours for minimal disruption',
+          'Prepare backup equipment in case of extended downtime',
+          'Consider environmental factors (temperature, humidity)',
+          'Review previous calibration records for patterns'
+        ],
+        estimatedDuration: '2-3 hours',
+        requiredTools: ['Calibration kit', 'Reference standards', 'Documentation forms'],
+        riskFactors: ['Equipment age may affect accuracy', 'Environmental conditions critical'],
+        costEstimate: '$150-200'
       }
+      setAiInsights(insights)
     } catch (error) {
-      console.error('Calibration creation failed:', error)
+      console.error('Failed to get AI insights:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'CRITICAL':
-        return 'bg-red-100 text-red-800 border-red-200'
-      case 'HIGH':
-        return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'LOW':
-        return 'bg-green-100 text-green-800 border-green-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+  const onSubmit = async (data: CalibrationFormData) => {
+    setLoading(true)
+    try {
+      // Mock API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('Calibration scheduled:', data)
+      router.push('/dashboard/calibrations')
+    } catch (error) {
+      console.error('Failed to schedule calibration:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Schedule New Calibration</h1>
-          <p className="text-gray-400 mt-2">Create a new calibration workflow with AI optimization</p>
+    <div className="space-y-6 mobile-spacing">
+      {/* Mobile Header */}
+      <div className="md:hidden">
+        <div className="flex items-center space-x-3 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="text-gray-400 hover:text-white"
+          >
+            ← Back
+          </Button>
+          <h1 className="mobile-heading text-white">Schedule Calibration</h1>
         </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="bg-teal-500/20 text-teal-400 border-teal-500/30">
-            <Brain className="w-3 h-3 mr-1" />
-            AI Enhanced
-          </Badge>
+        <p className="mobile-text text-gray-400">Schedule a new equipment calibration</p>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden md:block">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Schedule Calibration</h1>
+            <p className="text-gray-400 mt-2">Schedule a new equipment calibration with AI optimization</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="text-gray-400 hover:text-white"
+          >
+            ← Back to Calibrations
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mobile-grid lg:grid-cols-3 gap-6">
         {/* Main Form */}
         <div className="lg:col-span-2">
-          <Card className="glass-card">
+          <Card className="mobile-card">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings className="w-5 h-5 text-blue-400" />
+              <CardTitle className="mobile-heading text-white flex items-center space-x-2">
+                <Settings className="w-5 h-5" />
                 <span>Calibration Details</span>
               </CardTitle>
-              <CardDescription>
-                Configure the calibration parameters and schedule
-              </CardDescription>
             </CardHeader>
-            
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Equipment Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="equipmentId">Equipment *</Label>
-                  <Select onValueChange={handleEquipmentChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select equipment to calibrate" />
+                  <Label htmlFor="equipmentId" className="mobile-text text-white">Equipment *</Label>
+                  <Select onValueChange={(value) => setValue('equipmentId', value)}>
+                    <SelectTrigger className="mobile-input">
+                      <SelectValue placeholder="Select equipment" />
                     </SelectTrigger>
                     <SelectContent>
-                      {equipment.map((eq) => (
-                        <SelectItem key={eq.id} value={eq.id}>
+                      {equipment.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
                           <div className="flex items-center space-x-2">
-                            <span>{eq.name}</span>
+                            <span>{item.name}</span>
                             <Badge variant="outline" className="text-xs">
-                              {eq.type}
+                              {item.type}
                             </Badge>
                           </div>
                         </SelectItem>
@@ -247,126 +187,107 @@ export default function NewCalibrationPage() {
                     </SelectContent>
                   </Select>
                   {errors.equipmentId && (
-                    <p className="text-red-500 text-sm">{errors.equipmentId.message}</p>
+                    <p className="mobile-text text-red-400">{errors.equipmentId.message}</p>
                   )}
                 </div>
 
                 {/* Calibration Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="calibrationType">Calibration Type *</Label>
-                  <Select onValueChange={(value) => setValue('calibrationType', value as any)}>
-                    <SelectTrigger>
+                  <Label htmlFor="calibrationType" className="mobile-text text-white">Calibration Type *</Label>
+                  <Select onValueChange={(value) => setValue('calibrationType', value)}>
+                    <SelectTrigger className="mobile-input">
                       <SelectValue placeholder="Select calibration type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ROUTINE">Routine Calibration</SelectItem>
-                      <SelectItem value="PREVENTIVE">Preventive Maintenance</SelectItem>
-                      <SelectItem value="CORRECTIVE">Corrective Action</SelectItem>
-                      <SelectItem value="EMERGENCY">Emergency Calibration</SelectItem>
+                      {calibrationTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div>
+                            <div className="font-medium">{type.label}</div>
+                            <div className="text-xs text-gray-500">{type.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {errors.calibrationType && (
-                    <p className="text-red-500 text-sm">{errors.calibrationType.message}</p>
+                    <p className="mobile-text text-red-400">{errors.calibrationType.message}</p>
                   )}
                 </div>
 
                 {/* Date and Time */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mobile-grid-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Scheduled Date *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !watchedValues.scheduledDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {watchedValues.scheduledDate ? (
-                            format(watchedValues.scheduledDate, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={watchedValues.scheduledDate}
-                          onSelect={(date) => setValue('scheduledDate', date || new Date())}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="scheduledDate" className="mobile-text text-white">Date *</Label>
+                    <Input
+                      type="date"
+                      {...register('scheduledDate')}
+                      className="mobile-input"
+                    />
                     {errors.scheduledDate && (
-                      <p className="text-red-500 text-sm">{errors.scheduledDate.message}</p>
+                      <p className="mobile-text text-red-400">{errors.scheduledDate.message}</p>
                     )}
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="estimatedDuration">Estimated Duration (minutes) *</Label>
+                    <Label htmlFor="scheduledTime" className="mobile-text text-white">Time *</Label>
                     <Input
-                      type="number"
-                      min="15"
-                      step="15"
-                      {...register('estimatedDuration', { valueAsNumber: true })}
-                      placeholder="e.g., 60"
+                      type="time"
+                      {...register('scheduledTime')}
+                      className="mobile-input"
                     />
-                    {errors.estimatedDuration && (
-                      <p className="text-red-500 text-sm">{errors.estimatedDuration.message}</p>
+                    {errors.scheduledTime && (
+                      <p className="mobile-text text-red-400">{errors.scheduledTime.message}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Priority */}
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority *</Label>
-                  <Select onValueChange={(value) => setValue('priority', value as any)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority level" />
+                  <Label htmlFor="priority" className="mobile-text text-white">Priority *</Label>
+                  <Select onValueChange={(value) => setValue('priority', value)}>
+                    <SelectTrigger className="mobile-input">
+                      <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LOW">Low</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                      <SelectItem value="CRITICAL">Critical</SelectItem>
+                      {priorities.map((priority) => (
+                        <SelectItem key={priority.value} value={priority.value}>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={priority.color}>
+                              {priority.label}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {errors.priority && (
-                    <p className="text-red-500 text-sm">{errors.priority.message}</p>
+                    <p className="mobile-text text-red-400">{errors.priority.message}</p>
                   )}
                 </div>
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
+                  <Label htmlFor="description" className="mobile-text text-white">Description</Label>
                   <Textarea
                     {...register('description')}
-                    placeholder="Describe the calibration requirements, special considerations, or issues to address..."
+                    placeholder="Additional details about the calibration..."
+                    className="mobile-input"
                     rows={3}
                   />
-                  {errors.description && (
-                    <p className="text-red-500 text-sm">{errors.description.message}</p>
-                  )}
                 </div>
 
-                {/* Assigned To */}
+                {/* Assignment */}
                 <div className="space-y-2">
-                  <Label htmlFor="assignedTo">Assigned To (Optional)</Label>
+                  <Label htmlFor="assignedTo" className="mobile-text text-white">Assign To</Label>
                   <Select onValueChange={(value) => setValue('assignedTo', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="mobile-input">
                       <SelectValue placeholder="Select team member" />
                     </SelectTrigger>
                     <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          <div className="flex items-center space-x-2">
-                            <span>{user.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {user.role}
-                            </Badge>
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <div>
+                            <div className="font-medium">{member.name}</div>
+                            <div className="text-xs text-gray-500">{member.role}</div>
                           </div>
                         </SelectItem>
                       ))}
@@ -376,160 +297,138 @@ export default function NewCalibrationPage() {
 
                 {/* Special Requirements */}
                 <div className="space-y-2">
-                  <Label htmlFor="specialRequirements">Special Requirements (Optional)</Label>
+                  <Label htmlFor="specialRequirements" className="mobile-text text-white">Special Requirements</Label>
                   <Textarea
                     {...register('specialRequirements')}
-                    placeholder="Any special equipment, conditions, or procedures required..."
+                    placeholder="Any special requirements or notes..."
+                    className="mobile-input"
                     rows={2}
                   />
                 </div>
 
                 {/* AI Optimization Toggle */}
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="aiOptimization"
-                    {...register('aiOptimization')}
-                    className="rounded border-gray-300"
+                <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Brain className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <p className="mobile-text text-white font-medium">AI Optimization</p>
+                      <p className="mobile-text text-gray-400">Get AI-powered recommendations</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={watch('aiOptimization')}
+                    onCheckedChange={(checked) => setValue('aiOptimization', checked)}
                   />
-                  <Label htmlFor="aiOptimization" className="flex items-center space-x-2">
-                    <Brain className="w-4 h-4 text-blue-400" />
-                    <span>Enable AI optimization and insights</span>
-                  </Label>
                 </div>
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  disabled={!isValid || loading}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating Calibration...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Schedule Calibration
-                    </>
-                  )}
-                </Button>
+                <div className="flex space-x-3">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 mobile-button-primary"
+                  >
+                    {loading ? 'Scheduling...' : 'Schedule Calibration'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.back()}
+                    className="mobile-button-secondary"
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
         </div>
 
         {/* AI Insights Sidebar */}
-        <div className="space-y-6">
-          {/* Equipment Info */}
-          {selectedEquipment && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Target className="w-5 h-5 text-green-400" />
-                  <span>Equipment Info</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-400">Equipment</p>
-                  <p className="font-medium">{selectedEquipment.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Model</p>
-                  <p className="font-medium">{selectedEquipment.model}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Last Calibrated</p>
-                  <p className="font-medium">
-                    {selectedEquipment.lastCalibrated ? 
-                      format(new Date(selectedEquipment.lastCalibrated), 'MMM dd, yyyy') : 
-                      'Never'
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Next Due</p>
-                  <p className="font-medium">
-                    {selectedEquipment.nextCalibration ? 
-                      format(new Date(selectedEquipment.nextCalibration), 'MMM dd, yyyy') : 
-                      'Not scheduled'
-                    }
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Status</p>
-                  <Badge 
-                    variant="outline" 
-                    className={selectedEquipment.status === 'ACTIVE' ? 
-                      'border-green-500 text-green-400' : 
-                      'border-red-500 text-red-400'
-                    }
-                  >
-                    {selectedEquipment.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* AI Insights */}
-          {aiInsights && (
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Brain className="w-5 h-5 text-purple-400" />
-                  <span>AI Insights</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {aiInsights.recommendations?.map((rec: any, index: number) => (
-                  <div key={index} className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
-                    <h4 className="font-medium text-purple-300">{rec.title}</h4>
-                    <p className="text-sm text-purple-200 mt-1">{rec.description}</p>
-                  </div>
-                ))}
-                
-                {aiInsights.riskFactors?.map((risk: any, index: number) => (
-                  <div key={index} className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <h4 className="font-medium text-red-300">{risk.title}</h4>
-                    <p className="text-sm text-red-200 mt-1">{risk.description}</p>
-                  </div>
-                ))}
-
-                {aiInsights.optimizationTips?.map((tip: any, index: number) => (
-                  <div key={index} className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <h4 className="font-medium text-blue-300">{tip.title}</h4>
-                    <p className="text-sm text-blue-200 mt-1">{tip.description}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Quick Actions */}
-          <Card className="glass-card">
+        <div className="lg:col-span-1">
+          <Card className="mobile-card">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-yellow-400" />
-                <span>Quick Actions</span>
+              <CardTitle className="mobile-heading text-white flex items-center space-x-2">
+                <Brain className="w-5 h-5" />
+                <span>AI Insights</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <Clock className="w-4 h-4 mr-2" />
-                View Calibration History
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Check Equipment Status
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                View Compliance Report
-              </Button>
+            <CardContent>
+              {watchedEquipment && watchedCalibrationType ? (
+                <div className="space-y-4">
+                  <Button
+                    onClick={handleAiInsights}
+                    disabled={loading}
+                    className="w-full mobile-button-secondary"
+                  >
+                    {loading ? 'Loading...' : 'Get AI Recommendations'}
+                  </Button>
+
+                  {aiInsights && (
+                    <div className="space-y-4">
+                      {/* Recommendations */}
+                      <div>
+                        <h4 className="mobile-text text-white font-medium mb-2">Recommendations</h4>
+                        <div className="space-y-2">
+                          {aiInsights.recommendations.map((rec, index) => (
+                            <div key={index} className="flex items-start space-x-2">
+                              <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />
+                              <p className="mobile-text text-gray-300">{rec}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Estimated Duration */}
+                      <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Clock className="w-4 h-4 text-blue-400" />
+                          <span className="mobile-text text-blue-400 font-medium">Estimated Duration</span>
+                        </div>
+                        <p className="mobile-text text-white">{aiInsights.estimatedDuration}</p>
+                      </div>
+
+                      {/* Required Tools */}
+                      <div>
+                        <h4 className="mobile-text text-white font-medium mb-2">Required Tools</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {aiInsights.requiredTools.map((tool, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {tool}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Risk Factors */}
+                      <div>
+                        <h4 className="mobile-text text-white font-medium mb-2 flex items-center space-x-1">
+                          <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                          <span>Risk Factors</span>
+                        </h4>
+                        <div className="space-y-1">
+                          {aiInsights.riskFactors.map((risk, index) => (
+                            <p key={index} className="mobile-text text-yellow-400 text-sm">{risk}</p>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Cost Estimate */}
+                      <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="mobile-text text-green-400 font-medium">Cost Estimate</span>
+                        </div>
+                        <p className="mobile-text text-white">{aiInsights.costEstimate}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Brain className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="mobile-text text-gray-400">Select equipment and calibration type to get AI insights</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
