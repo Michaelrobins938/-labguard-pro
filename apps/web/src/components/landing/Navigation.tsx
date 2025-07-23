@@ -45,13 +45,25 @@ export function Navigation() {
                     className="absolute top-full left-0 mt-2 w-64 glass-card rounded-xl border border-white/10 p-4"
                   >
                     <div className="space-y-3">
-                      <Link href="/solutions/enterprise" className="block text-gray-300 hover:text-white transition-colors">
+                      <Link 
+                        href="/solutions/enterprise" 
+                        className="block text-gray-300 hover:text-white transition-colors"
+                        onClick={() => setIsSolutionsOpen(false)}
+                      >
                         Enterprise Compliance
                       </Link>
-                      <Link href="/solutions/research" className="block text-gray-300 hover:text-white transition-colors">
+                      <Link 
+                        href="/solutions/research" 
+                        className="block text-gray-300 hover:text-white transition-colors"
+                        onClick={() => setIsSolutionsOpen(false)}
+                      >
                         Research Labs
                       </Link>
-                      <Link href="/solutions/clinical" className="block text-gray-300 hover:text-white transition-colors">
+                      <Link 
+                        href="/solutions/clinical" 
+                        className="block text-gray-300 hover:text-white transition-colors"
+                        onClick={() => setIsSolutionsOpen(false)}
+                      >
                         Clinical Laboratories
                       </Link>
                     </div>
@@ -78,13 +90,25 @@ export function Navigation() {
                     className="absolute top-full left-0 mt-2 w-64 glass-card rounded-xl border border-white/10 p-4"
                   >
                     <div className="space-y-3">
-                      <Link href="/resources/documentation" className="block text-gray-300 hover:text-white transition-colors">
+                      <Link 
+                        href="/resources/documentation" 
+                        className="block text-gray-300 hover:text-white transition-colors"
+                        onClick={() => setIsResourcesOpen(false)}
+                      >
                         Documentation
                       </Link>
-                      <Link href="/resources/api" className="block text-gray-300 hover:text-white transition-colors">
+                      <Link 
+                        href="/resources/api" 
+                        className="block text-gray-300 hover:text-white transition-colors"
+                        onClick={() => setIsResourcesOpen(false)}
+                      >
                         API Reference
                       </Link>
-                      <Link href="/resources/support" className="block text-gray-300 hover:text-white transition-colors">
+                      <Link 
+                        href="/resources/support" 
+                        className="block text-gray-300 hover:text-white transition-colors"
+                        onClick={() => setIsResourcesOpen(false)}
+                      >
                         Support Center
                       </Link>
                     </div>

@@ -435,7 +435,11 @@ export function BiomniAssistant() {
                       }
                     }}
                     placeholder="Ask about equipment, calibration, compliance..."
-                    className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50"
+                    className="flex-1 bg-white/10 border border-white/30 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/70 focus:bg-white/15"
+                    style={{
+                      color: 'white',
+                      textShadow: '0 0 1px rgba(255,255,255,0.3)'
+                    }}
                   />
                   <Button
                     size="icon"
