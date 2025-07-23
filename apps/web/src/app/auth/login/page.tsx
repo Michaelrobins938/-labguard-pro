@@ -52,7 +52,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" style={{ background: 'white' }}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -83,8 +83,9 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={(e) => updateFormData('email', e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
                   placeholder="Enter your email"
+                  style={{ color: '#111827', backgroundColor: 'white' }}
                 />
                 <Mail className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
@@ -103,8 +104,9 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={(e) => updateFormData('password', e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
                   placeholder="Enter your password"
+                  style={{ color: '#111827', backgroundColor: 'white' }}
                 />
                 <button
                   type="button"
