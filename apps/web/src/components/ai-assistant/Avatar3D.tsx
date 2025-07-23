@@ -30,125 +30,115 @@ export function Avatar3D({ state = 'idle', size = 'md', onClick, className }: Av
       className={`relative ${sizeClasses[size]} ${className} ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      {/* Outer Glow Ring */}
+      {/* Main Spherical Orb */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle, ${currentState.glowColor}40 0%, ${currentState.glowColor}20 50%, transparent 100%)`,
-          filter: 'blur(8px)'
+          background: `radial-gradient(circle, #60A5FA 0%, #3B82F6 50%, #1E40AF 100%)`,
+          boxShadow: `0 0 30px rgba(96, 165, 250, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3)`
         }}
         animate={{ 
-          scale: [1, 1.1, 1],
-          opacity: [currentState.intensity * 0.6, currentState.intensity, currentState.intensity * 0.6]
+          scale: [1, 1.05, 1],
+          opacity: [0.9, 1, 0.9]
         }}
         transition={{ 
-          duration: 2, 
+          duration: 3, 
           repeat: Infinity, 
           ease: "easeInOut" 
         }}
-      />
-      
-      {/* Main Swirl Container */}
+      >
+        {/* Face Elements */}
+        <div className="relative w-full h-full flex items-center justify-center">
+          {/* Eyes */}
+          <div className="absolute flex space-x-3" style={{ top: '35%' }}>
+            <div className="w-3 h-2 bg-white rounded-full shadow-lg opacity-90" />
+            <div className="w-3 h-2 bg-white rounded-full shadow-lg opacity-90" />
+          </div>
+          
+          {/* Smile */}
+          <div className="absolute bottom-6">
+            <svg width="16" height="8" viewBox="0 0 16 8" fill="none">
+              <path 
+                d="M3 3C6 6 10 6 13 3" 
+                stroke="white" 
+                strokeWidth="2" 
+                strokeLinecap="round"
+                opacity="0.9"
+              />
+            </svg>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Inner Curved Element - Darker Teal */}
       <motion.div
-        className="relative w-full h-full rounded-full"
+        className="absolute inset-0"
         style={{
-          background: `conic-gradient(from 0deg, ${currentState.glowColor}80, #1E293B, ${currentState.glowColor}60, #374151, ${currentState.glowColor}80)`,
-          boxShadow: `inset 0 0 20px ${currentState.glowColor}40, 0 0 30px ${currentState.glowColor}30`
+          background: `conic-gradient(from 180deg, transparent 0deg, #0F766E 90deg, transparent 180deg)`,
+          borderRadius: '50%',
+          transform: 'rotate(-45deg)'
         }}
         animate={{ 
-          rotate: 360,
+          rotate: [0, 360]
         }}
         transition={{ 
-          duration: 10 / currentState.rotation, 
+          duration: 8, 
           repeat: Infinity, 
           ease: "linear" 
         }}
       >
-        {/* Inner Shadow Ring */}
         <div 
           className="absolute inset-2 rounded-full"
           style={{
-            background: `radial-gradient(circle, transparent 40%, #0F172A80 70%, #0F172A 100%)`,
-            boxShadow: `inset 0 0 15px #00000060`
+            background: `conic-gradient(from 180deg, transparent 0deg, #0F766E 60deg, transparent 120deg)`,
+            borderRadius: '50%'
           }}
         />
-        
-        {/* Center Face Container */}
-        <motion.div
-          className="absolute inset-4 rounded-full flex items-center justify-center"
-          style={{
-            background: `radial-gradient(circle, ${currentState.glowColor} 0%, ${currentState.glowColor}E6 100%)`,
-            boxShadow: `0 0 20px ${currentState.glowColor}80, inset 0 0 10px ${currentState.glowColor}40`
-          }}
-          animate={{
-            scale: [1, 1.05, 1]
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        >
-          {/* Face Elements */}
-          <div className="relative w-full h-full flex items-center justify-center">
-            {/* Eyes */}
-            <div className="absolute flex space-x-2" style={{ top: '35%' }}>
-              <motion.div
-                className="w-2 h-2 bg-white rounded-full shadow-lg"
-                animate={currentState.eyeExpression === 'wink' ? { scaleY: [1, 0.1, 1] } : {}}
-                transition={{ duration: 0.3 }}
-              />
-              <motion.div
-                className="w-2 h-2 bg-white rounded-full shadow-lg"
-                animate={currentState.eyeExpression === 'analyzing' ? { 
-                  scaleX: [1, 1.2, 1], 
-                  scaleY: [1, 0.8, 1] 
-                } : {}}
-                transition={{ duration: 1, repeat: Infinity }}
-              />
-            </div>
-            
-            {/* Mouth */}
-            <motion.div
-              className="absolute bottom-6"
-              animate={currentState.mood === 'speaking' ? {
-                scaleY: [1, 1.2, 0.8, 1]
-              } : {}}
-              transition={{ duration: 0.5, repeat: Infinity }}
-            >
-              <svg width="12" height="6" viewBox="0 0 12 6" fill="none">
-                <path 
-                  d="M2 2C4 4 8 4 10 2" 
-                  stroke="white" 
-                  strokeWidth="1.5" 
-                  strokeLinecap="round"
-                />
-              </svg>
-            </motion.div>
-            
-            {/* Thinking Dots (when analyzing) */}
-            {currentState.mood === 'thinking' && (
-              <div className="absolute bottom-2 flex space-x-1">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1 h-1 bg-white/80 rounded-full"
-                    animate={{ 
-                      opacity: [0.3, 1, 0.3],
-                      y: [0, -2, 0]
-                    }}
-                    transition={{ 
-                      duration: 1, 
-                      repeat: Infinity, 
-                      delay: i * 0.2 
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.div>
       </motion.div>
+
+      {/* Outer Curved Element - Brighter Teal */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          background: `conic-gradient(from 45deg, transparent 0deg, #14B8A6 90deg, transparent 180deg)`,
+          borderRadius: '50%',
+          transform: 'rotate(45deg)'
+        }}
+        animate={{ 
+          rotate: [0, -360]
+        }}
+        transition={{ 
+          duration: 12, 
+          repeat: Infinity, 
+          ease: "linear" 
+        }}
+      >
+        <div 
+          className="absolute inset-1 rounded-full"
+          style={{
+            background: `conic-gradient(from 45deg, transparent 0deg, #14B8A6 60deg, transparent 120deg)`,
+            borderRadius: '50%'
+          }}
+        />
+      </motion.div>
+
+      {/* Glow Effect */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `radial-gradient(circle, rgba(96, 165, 250, 0.3) 0%, rgba(96, 165, 250, 0.1) 50%, transparent 100%)`,
+          filter: 'blur(8px)'
+        }}
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.6, 0.3]
+        }}
+        transition={{ 
+          duration: 4, 
+          repeat: Infinity, 
+          ease: "easeInOut" 
+        }}
+      />
       
       {/* Interaction Ripple Effect */}
       {onClick && (
