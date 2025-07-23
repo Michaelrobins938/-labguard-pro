@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Users, 
-  University, 
+  GraduationCap, 
   BookOpen, 
   Award, 
   Github, 
@@ -202,7 +202,7 @@ export function BiomniContributors() {
               <span>Key Contributors</span>
             </TabsTrigger>
             <TabsTrigger value="institutions" className="flex items-center space-x-2">
-              <University className="w-4 h-4" />
+                              <GraduationCap className="w-4 h-4" />
               <span>Institutions</span>
             </TabsTrigger>
             <TabsTrigger value="research" className="flex items-center space-x-2">
@@ -292,7 +292,7 @@ export function BiomniContributors() {
                             className="w-12 h-12 object-contain"
                           />
                         ) : (
-                          <University className="w-8 h-8 text-blue-600" />
+                          <GraduationCap className="w-8 h-8 text-blue-600" />
                         )}
                       </div>
                       <div>

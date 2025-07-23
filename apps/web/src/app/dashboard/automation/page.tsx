@@ -10,7 +10,7 @@ import {
   Zap,
   Play,
   Pause,
-  Stop,
+  Square,
   Edit,
   Trash2,
   Plus,
@@ -158,7 +158,7 @@ export default function AutomationPage() {
       case 'active':
         return <Play className="h-4 w-4" />
       case 'inactive':
-        return <Stop className="h-4 w-4" />
+        return <Square className="h-4 w-4" />
       case 'paused':
         return <Pause className="h-4 w-4" />
       case 'error':

@@ -363,8 +363,8 @@ export const apiService = {
       const response = await apiClient.get('/api/admin/system/backups')
       return response.data
     },
-    createBackup: async () => {
-      const response = await apiClient.post('/api/admin/system/backups')
+    createBackup: async (type?: 'full' | 'incremental') => {
+      const response = await apiClient.post('/api/admin/system/backups', { type })
       return response.data
     },
     getUsers: async () => {
