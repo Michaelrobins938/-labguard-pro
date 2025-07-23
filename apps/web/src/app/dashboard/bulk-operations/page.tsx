@@ -1,170 +1,122 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
-  Upload, 
-  Download, 
-  Trash2, 
-  Edit, 
-  Calendar, 
-  Users, 
-  Settings, 
+  Upload,
+  Download,
+  Trash2,
+  Edit,
+  Calendar,
+  Users,
+  Settings,
   AlertTriangle,
   CheckCircle,
   Clock,
   FileText,
-  Database,
-  RefreshCw
+  BarChart3,
+  Activity,
+  Plus,
+  X,
+  Save,
+  Play,
+  Pause,
+  Stop
 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiService } from '@/lib/api-service'
+import { toast } from 'react-hot-toast'
 
 interface BulkOperation {
   id: string
-  type: 'equipment' | 'calibration' | 'user' | 'notification' | 'report' | 'maintenance'
-  operation: 'create' | 'update' | 'delete' | 'schedule' | 'export' | 'import'
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  itemsCount: number
-  processedCount: number
+  type: 'equipment' | 'calibration' | 'maintenance' | 'user' | 'notification'
+  action: 'create' | 'update' | 'delete' | 'schedule' | 'notify'
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused'
+  totalItems: number
+  processedItems: number
+  successfulItems: number
+  failedItems: number
   createdAt: string
+  startedAt?: string
   completedAt?: string
   description: string
-  errors?: string[]
+  createdBy: string
 }
 
 interface BulkOperationTemplate {
   id: string
   name: string
   description: string
-  type: 'equipment' | 'calibration' | 'user' | 'notification' | 'report' | 'maintenance'
-  operation: 'create' | 'update' | 'delete' | 'schedule' | 'export' | 'import'
-  icon: React.ReactNode
-  color: string
+  type: string
+  action: string
+  fields: {
+    name: string
+    type: string
+    required: boolean
+    options?: string[]
+  }[]
 }
 
-const BULK_OPERATION_TEMPLATES: BulkOperationTemplate[] = [
-  {
-    id: 'bulk-equipment-create',
-    name: 'Bulk Equipment Creation',
-    description: 'Create multiple equipment items from CSV/Excel file',
-    type: 'equipment',
-    operation: 'create',
-    icon: <Database className="w-5 h-5" />,
-    color: 'bg-blue-500'
-  },
-  {
-    id: 'bulk-calibration-schedule',
-    name: 'Bulk Calibration Scheduling',
-    description: 'Schedule calibrations for multiple equipment items',
-    type: 'calibration',
-    operation: 'schedule',
-    icon: <Calendar className="w-5 h-5" />,
-    color: 'bg-green-500'
-  },
-  {
-    id: 'bulk-user-management',
-    name: 'Bulk User Management',
-    description: 'Create, update, or deactivate multiple users',
-    type: 'user',
-    operation: 'create',
-    icon: <Users className="w-5 h-5" />,
-    color: 'bg-purple-500'
-  },
-  {
-    id: 'bulk-notification-send',
-    name: 'Bulk Notification Sending',
-    description: 'Send notifications to multiple users or teams',
-    type: 'notification',
-    operation: 'create',
-    icon: <AlertTriangle className="w-5 h-5" />,
-    color: 'bg-orange-500'
-  },
-  {
-    id: 'bulk-report-generation',
-    name: 'Bulk Report Generation',
-    description: 'Generate multiple reports for different equipment or time periods',
-    type: 'report',
-    operation: 'create',
-    icon: <FileText className="w-5 h-5" />,
-    color: 'bg-indigo-500'
-  },
-  {
-    id: 'bulk-maintenance-schedule',
-    name: 'Bulk Maintenance Scheduling',
-    description: 'Schedule maintenance for multiple equipment items',
-    type: 'maintenance',
-    operation: 'schedule',
-    icon: <Settings className="w-5 h-5" />,
-    color: 'bg-red-500'
-  }
-]
-
 export default function BulkOperationsPage() {
-  const router = useRouter()
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
+  const { data: session } = useSession()
+  const queryClient = useQueryClient()
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  const [operationConfig, setOperationConfig] = useState<any>({})
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [recentOperations, setRecentOperations] = useState<BulkOperation[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [operationData, setOperationData] = useState<Record<string, any>>({})
+  const [showCreateOperation, setShowCreateOperation] = useState(false)
 
-  useEffect(() => {
-    fetchRecentOperations()
-  }, [])
+  // Fetch bulk operations
+  const { data: bulkOperations, isLoading: operationsLoading } = useQuery({
+    queryKey: ['bulk-operations'],
+    queryFn: async () => {
+      const response = await apiService.bulkOperations.getBulkOperations()
+      return response as BulkOperation[]
+    },
+    enabled: !!session
+  })
 
-  const fetchRecentOperations = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await fetch('/api/bulk-operations', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      })
-      if (!response.ok) { throw new Error('Failed to fetch bulk operations') }
-      const data = await response.json()
-      setRecentOperations(data.data || [])
-    } catch (err) {
-      console.error('Error fetching bulk operations:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch bulk operations')
-      // Fallback to mock data
-      setRecentOperations([
-        {
-          id: '1',
-          type: 'equipment',
-          operation: 'create',
-          status: 'completed',
-          itemsCount: 25,
-          processedCount: 25,
-          createdAt: '2024-01-15T10:30:00Z',
-          completedAt: '2024-01-15T10:35:00Z',
-          description: 'Bulk equipment creation from CSV file'
-        },
-        {
-          id: '2',
-          type: 'calibration',
-          operation: 'schedule',
-          status: 'processing',
-          itemsCount: 15,
-          processedCount: 8,
-          createdAt: '2024-01-15T09:15:00Z',
-          description: 'Bulk calibration scheduling for Q1 2024'
-        },
-        {
-          id: '3',
-          type: 'user',
-          operation: 'create',
-          status: 'failed',
-          itemsCount: 10,
-          processedCount: 3,
-          createdAt: '2024-01-14T16:45:00Z',
-          description: 'Bulk user creation from HR system',
-          errors: ['Invalid email format for user@example', 'Duplicate user ID: 12345']
-        }
-      ])
-    } finally {
-      setLoading(false)
+  // Fetch operation templates
+  const { data: templates } = useQuery({
+    queryKey: ['bulk-operation-templates'],
+    queryFn: async () => {
+      const response = await apiService.bulkOperations.getTemplates()
+      return response as BulkOperationTemplate[]
+    },
+    enabled: !!session
+  })
+
+  // Create bulk operation mutation
+  const createOperationMutation = useMutation({
+    mutationFn: (data: any) => apiService.bulkOperations.createBulkOperation(data),
+    onSuccess: () => {
+      toast.success('Bulk operation created successfully')
+      setShowCreateOperation(false)
+      setSelectedTemplate('')
+      setUploadedFile(null)
+      setOperationData({})
+      queryClient.invalidateQueries({ queryKey: ['bulk-operations'] })
+    },
+    onError: (error: any) => {
+      toast.error('Failed to create bulk operation')
     }
-  }
+  })
+
+  // Pause/Resume operation mutation
+  const toggleOperationMutation = useMutation({
+    mutationFn: ({ operationId, action }: { operationId: string; action: 'pause' | 'resume' }) =>
+      apiService.bulkOperations.toggleOperation(operationId, action),
+    onSuccess: () => {
+      toast.success('Operation status updated')
+      queryClient.invalidateQueries({ queryKey: ['bulk-operations'] })
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update operation status')
+    }
+  })
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -173,288 +125,382 @@ export default function BulkOperationsPage() {
     }
   }
 
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId)
-    setUploadedFile(null)
-    setOperationConfig({})
-  }
-
-  const handleStartOperation = async () => {
+  const handleCreateOperation = () => {
     if (!selectedTemplate || !uploadedFile) {
-      alert('Please select a template and upload a file')
+      toast.error('Please select a template and upload a file')
       return
     }
 
-    try {
-      setIsProcessing(true)
-      const formData = new FormData()
-      formData.append('file', uploadedFile)
-      formData.append('templateId', selectedTemplate)
-      formData.append('config', JSON.stringify(operationConfig))
+    const formData = new FormData()
+    formData.append('templateId', selectedTemplate)
+    formData.append('file', uploadedFile)
+    formData.append('data', JSON.stringify(operationData))
 
-      const response = await fetch('/api/bulk-operations', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      })
-
-      if (!response.ok) { throw new Error('Failed to start bulk operation') }
-      
-      const result = await response.json()
-      alert('Bulk operation started successfully!')
-      
-      // Reset form
-      setSelectedTemplate(null)
-      setUploadedFile(null)
-      setOperationConfig({})
-      
-      // Refresh recent operations
-      fetchRecentOperations()
-    } catch (err) {
-      console.error('Error starting bulk operation:', err)
-      alert('Failed to start bulk operation. Please try again.')
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'processing':
-        return <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
-      case 'failed':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />
-      default:
-        return <Clock className="w-5 h-5 text-gray-500" />
-    }
+    createOperationMutation.mutate(formData)
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'running':
+        return 'bg-blue-100 text-blue-800'
       case 'completed':
         return 'bg-green-100 text-green-800'
-      case 'processing':
-        return 'bg-blue-100 text-blue-800'
       case 'failed':
         return 'bg-red-100 text-red-800'
+      case 'paused':
+        return 'bg-gray-100 text-gray-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString()
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-4 w-4" />
+      case 'running':
+        return <Play className="h-4 w-4" />
+      case 'completed':
+        return <CheckCircle className="h-4 w-4" />
+      case 'failed':
+        return <AlertTriangle className="h-4 w-4" />
+      case 'paused':
+        return <Pause className="h-4 w-4" />
+      default:
+        return <Clock className="h-4 w-4" />
+    }
   }
 
-  if (loading) {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const getProgressPercentage = (operation: BulkOperation) => {
+    return Math.round((operation.processedItems / operation.totalItems) * 100)
+  }
+
+  if (operationsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-                <div className="space-y-3">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-20 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-24 bg-gray-200 rounded"></div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Bulk Operations</h1>
-          <p className="text-gray-600">Perform batch operations on equipment, calibrations, users, and more</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Bulk Operations</h1>
+          <p className="text-muted-foreground">
+            Manage large-scale operations across equipment, calibrations, and users
+          </p>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Download Template
+          </Button>
+          <Button size="sm" onClick={() => setShowCreateOperation(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Operation
+          </Button>
+        </div>
+      </div>
 
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <AlertTriangle className="w-5 h-5 text-red-400 mr-2" />
-              <p className="text-red-800">{error}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Operation Templates */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Operation Templates</h2>
-              <p className="text-gray-600 mt-1">Select a template to start a bulk operation</p>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 gap-4">
-                {BULK_OPERATION_TEMPLATES.map((template) => (
-                  <div
-                    key={template.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedTemplate === template.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handleTemplateSelect(template.id)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${template.color} text-white`}>
-                        {template.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{template.name}</h3>
-                        <p className="text-sm text-gray-600">{template.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Settings className="h-5 w-5 text-blue-600" />
               </div>
+              <div>
+                <h3 className="font-medium">Equipment Import</h3>
+                <p className="text-sm text-muted-foreground">Import equipment from CSV</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {selectedTemplate && (
-                <div className="mt-6 space-y-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Calendar className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Schedule Calibrations</h3>
+                <p className="text-sm text-muted-foreground">Bulk calibration scheduling</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Users className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">User Management</h3>
+                <p className="text-sm text-muted-foreground">Bulk user operations</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Activity className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Maintenance</h3>
+                <p className="text-sm text-muted-foreground">Bulk maintenance scheduling</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Operations */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Operations</CardTitle>
+          <CardDescription>
+            Monitor the status of your bulk operations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {bulkOperations?.map((operation) => (
+              <div key={operation.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-muted rounded-lg">
+                    {getStatusIcon(operation.status)}
+                  </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Upload File (CSV/Excel)
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <input
-                        type="file"
-                        accept=".csv,.xlsx,.xls"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        id="file-upload"
-                      />
-                      <label htmlFor="file-upload" className="cursor-pointer">
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600">
-                          {uploadedFile ? uploadedFile.name : 'Click to upload or drag and drop'}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          CSV, XLSX, or XLS files up to 10MB
-                        </p>
-                      </label>
+                    <div className="font-medium">{operation.description}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {operation.type} • {operation.action} • {operation.createdBy}
                     </div>
                   </div>
-
-                  <button
-                    onClick={handleStartOperation}
-                    disabled={!uploadedFile || isProcessing}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isProcessing ? 'Processing...' : 'Start Bulk Operation'}
-                  </button>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Operations */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Recent Operations</h2>
-              <p className="text-gray-600 mt-1">Track the status of your bulk operations</p>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {recentOperations.map((operation) => (
-                  <div key={operation.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(operation.status)}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(operation.status)}`}>
-                          {operation.status}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {formatDate(operation.createdAt)}
-                      </span>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="text-sm font-medium">
+                      {operation.processedItems}/{operation.totalItems} items
                     </div>
-                    
-                    <h3 className="font-medium text-gray-900 mb-1">
-                      {operation.description}
-                    </h3>
-                    
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>
-                        {operation.processedCount} of {operation.itemsCount} items processed
-                      </span>
-                      <span className="capitalize">
-                        {operation.type} • {operation.operation}
-                      </span>
+                    <div className="text-xs text-muted-foreground">
+                      {operation.successfulItems} successful, {operation.failedItems} failed
                     </div>
-
-                    {operation.errors && operation.errors.length > 0 && (
-                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
-                        <p className="font-medium mb-1">Errors:</p>
-                        <ul className="list-disc list-inside space-y-1">
-                          {operation.errors.map((error, index) => (
-                            <li key={index}>{error}</li>
-                          ))}
-                        </ul>
-                      </div>
+                  </div>
+                  <Badge className={getStatusColor(operation.status)}>
+                    {operation.status.toUpperCase()}
+                  </Badge>
+                  <div className="flex gap-1">
+                    {operation.status === 'running' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleOperationMutation.mutate({
+                          operationId: operation.id,
+                          action: 'pause'
+                        })}
+                      >
+                        <Pause className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {operation.status === 'paused' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleOperationMutation.mutate({
+                          operationId: operation.id,
+                          action: 'resume'
+                        })}
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
-                ))}
+                </div>
+              </div>
+            ))}
+            {(!bulkOperations || bulkOperations.length === 0) && (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Operations</h3>
+                <p className="text-muted-foreground">
+                  Create your first bulk operation to get started
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-                {recentOperations.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No bulk operations yet</p>
-                    <p className="text-sm">Start your first bulk operation using the templates</p>
+      {/* Create Operation Modal */}
+      {showCreateOperation && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Bulk Operation</CardTitle>
+            <CardDescription>
+              Select a template and upload your data file
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Template Selection */}
+            <div>
+              <label className="text-sm font-medium">Operation Template</label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md mt-1"
+              >
+                <option value="">Select a template</option>
+                {templates?.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} - {template.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* File Upload */}
+            <div>
+              <label className="text-sm font-medium">Data File</label>
+              <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="text-blue-600 hover:text-blue-700">
+                    Click to upload
+                  </span>
+                  <span className="text-muted-foreground"> or drag and drop</span>
+                </label>
+                <p className="text-xs text-muted-foreground mt-2">
+                  CSV, XLSX, or XLS files up to 10MB
+                </p>
+                {uploadedFile && (
+                  <div className="mt-2 text-sm text-green-600">
+                    ✓ {uploadedFile.name} uploaded
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Help Section */}
-        <div className="mt-8 bg-white rounded-lg shadow">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Bulk Operations Guide</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Operation Settings */}
+            {selectedTemplate && (
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">Supported File Formats</h3>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• CSV files with headers</li>
-                  <li>• Excel files (.xlsx, .xls)</li>
-                  <li>• Maximum file size: 10MB</li>
-                  <li>• Maximum 10,000 rows per operation</li>
-                </ul>
+                <label className="text-sm font-medium">Operation Settings</label>
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="validate-only"
+                      checked={operationData.validateOnly || false}
+                      onChange={(e) => setOperationData({
+                        ...operationData,
+                        validateOnly: e.target.checked
+                      })}
+                    />
+                    <label htmlFor="validate-only" className="text-sm">
+                      Validate only (don't execute)
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="send-notifications"
+                      checked={operationData.sendNotifications || false}
+                      onChange={(e) => setOperationData({
+                        ...operationData,
+                        sendNotifications: e.target.checked
+                      })}
+                    />
+                    <label htmlFor="send-notifications" className="text-sm">
+                      Send notifications to affected users
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Operation Types</h3>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Equipment creation and updates</li>
-                  <li>• Calibration scheduling</li>
-                  <li>• User management</li>
-                  <li>• Notification sending</li>
-                  <li>• Report generation</li>
-                  <li>• Maintenance scheduling</li>
-                </ul>
-              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                onClick={handleCreateOperation}
+                disabled={!selectedTemplate || !uploadedFile || createOperationMutation.isPending}
+              >
+                {createOperationMutation.isPending ? 'Creating...' : 'Create Operation'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateOperation(false)}
+              >
+                Cancel
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Operation Templates */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Templates</CardTitle>
+          <CardDescription>
+            Pre-configured templates for common bulk operations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templates?.map((template) => (
+              <Card key={template.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{template.name}</CardTitle>
+                  <CardDescription>{template.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Type:</span>
+                      <Badge variant="outline">{template.type}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Action:</span>
+                      <Badge variant="outline">{template.action}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {template.fields.length} required fields
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 } 

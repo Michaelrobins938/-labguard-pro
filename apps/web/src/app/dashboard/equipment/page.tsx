@@ -1,443 +1,352 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import {
-  Plus,
-  Search,
-  Filter,
+import { useState } from 'react'
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  MoreVertical, 
+  Edit, 
+  Trash2, 
+  Eye,
   Settings,
   AlertTriangle,
   CheckCircle,
   Clock,
-  Eye,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Calendar,
-  MapPin
+  Calendar
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface Equipment {
   id: string
   name: string
+  type: string
   model: string
   serialNumber: string
-  manufacturer: string
-  equipmentType: string
   location: string
-  status: string
+  status: 'active' | 'inactive' | 'maintenance' | 'retired'
   lastCalibration: string
   nextCalibration: string
-  complianceStatus: string
-  complianceScore: number
+  complianceStatus: 'compliant' | 'warning' | 'overdue'
+  department: string
+  responsiblePerson: string
 }
 
 export default function EquipmentPage() {
-  const [equipment, setEquipment] = useState<Equipment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [error, setError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
 
-  // Fetch equipment data from API
-  useEffect(() => {
-    const fetchEquipment = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const response = await fetch('/api/equipment', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch equipment data')
-        }
-
-        const data = await response.json()
-        
-        // Transform API data to match our interface
-        const transformedEquipment = data.data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          model: item.model,
-          serialNumber: item.serialNumber,
-          manufacturer: item.manufacturer,
-          equipmentType: item.equipmentType,
-          location: item.location || 'Not specified',
-          status: item.status,
-          lastCalibration: item.calibrationRecords?.[0]?.performedDate || null,
-          nextCalibration: item.calibrationRecords?.[0]?.dueDate || null,
-          complianceStatus: item.calibrationRecords?.[0]?.complianceStatus || 'PENDING',
-          complianceScore: item.calibrationRecords?.[0]?.complianceScore || 0
-        }))
-
-        setEquipment(transformedEquipment)
-      } catch (err) {
-        console.error('Error fetching equipment:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch equipment data')
-        
-        // Fallback to mock data for development
-        const mockEquipment: Equipment[] = [
-          {
-            id: '1',
-            name: 'Analytical Balance AB-001',
-            model: 'Sartorius ME36S',
-            serialNumber: 'AB-001',
-            manufacturer: 'Sartorius',
-            equipmentType: 'ANALYTICAL_BALANCE',
-            location: 'Lab A - Room 101',
-            status: 'ACTIVE',
-            lastCalibration: '2024-01-15T10:30:00Z',
-            nextCalibration: '2024-02-15T10:30:00Z',
-            complianceStatus: 'COMPLIANT',
-            complianceScore: 96.2
-          },
-          {
-            id: '2',
-            name: 'Centrifuge CF-003',
-            model: 'Eppendorf 5810R',
-            serialNumber: 'CF-003',
-            manufacturer: 'Eppendorf',
-            equipmentType: 'CENTRIFUGE',
-            location: 'Lab B - Room 102',
-            status: 'ACTIVE',
-            lastCalibration: '2024-01-20T14:15:00Z',
-            nextCalibration: '2024-02-20T14:15:00Z',
-            complianceStatus: 'COMPLIANT',
-            complianceScore: 92.1
-          },
-          {
-            id: '3',
-            name: 'pH Meter PH-002',
-            model: 'Thermo Scientific Orion',
-            serialNumber: 'PH-002',
-            manufacturer: 'Thermo Scientific',
-            equipmentType: 'OTHER',
-            location: 'Lab A - Room 101',
-            status: 'ACTIVE',
-            lastCalibration: '2024-01-10T09:00:00Z',
-            nextCalibration: '2024-02-10T09:00:00Z',
-            complianceStatus: 'WARNING',
-            complianceScore: 88.5
-          },
-          {
-            id: '4',
-            name: 'Microscope MS-005',
-            model: 'Olympus BX53',
-            serialNumber: 'MS-005',
-            manufacturer: 'Olympus',
-            equipmentType: 'MICROSCOPE',
-            location: 'Lab C - Room 103',
-            status: 'MAINTENANCE',
-            lastCalibration: '2024-01-05T11:00:00Z',
-            nextCalibration: '2024-02-05T11:00:00Z',
-            complianceStatus: 'OVERDUE',
-            complianceScore: 75.2
-          }
-        ]
-        setEquipment(mockEquipment)
-      } finally {
-        setLoading(false)
-      }
+  const equipment: Equipment[] = [
+    {
+      id: '1',
+      name: 'Analytical Balance PB-220',
+      type: 'Balance',
+      model: 'PB-220',
+      serialNumber: 'AB-2024-001',
+      location: 'Lab A - Room 101',
+      status: 'active',
+      lastCalibration: '2024-01-15',
+      nextCalibration: '2024-02-15',
+      complianceStatus: 'compliant',
+      department: 'Chemistry',
+      responsiblePerson: 'Dr. Sarah Chen'
+    },
+    {
+      id: '2',
+      name: 'Centrifuge CF-16',
+      type: 'Centrifuge',
+      model: 'CF-16',
+      serialNumber: 'CF-2024-002',
+      location: 'Lab B - Room 102',
+      status: 'active',
+      lastCalibration: '2024-01-10',
+      nextCalibration: '2024-02-10',
+      complianceStatus: 'warning',
+      department: 'Biology',
+      responsiblePerson: 'Mike Rodriguez'
+    },
+    {
+      id: '3',
+      name: 'Incubator IC-200',
+      type: 'Incubator',
+      model: 'IC-200',
+      serialNumber: 'IC-2024-003',
+      location: 'Lab C - Room 103',
+      status: 'maintenance',
+      lastCalibration: '2024-01-05',
+      nextCalibration: '2024-02-05',
+      complianceStatus: 'overdue',
+      department: 'Microbiology',
+      responsiblePerson: 'Emily Johnson'
+    },
+    {
+      id: '4',
+      name: 'pH Meter PH-100',
+      type: 'pH Meter',
+      model: 'PH-100',
+      serialNumber: 'PH-2024-004',
+      location: 'Lab A - Room 101',
+      status: 'active',
+      lastCalibration: '2024-01-20',
+      nextCalibration: '2024-02-20',
+      complianceStatus: 'compliant',
+      department: 'Chemistry',
+      responsiblePerson: 'Dr. Sarah Chen'
     }
-
-    fetchEquipment()
-  }, [])
+  ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'MAINTENANCE':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'INACTIVE':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'active':
+        return 'text-green-600 bg-green-100'
+      case 'inactive':
+        return 'text-gray-600 bg-gray-100'
+      case 'maintenance':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'retired':
+        return 'text-red-600 bg-red-100'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'text-gray-600 bg-gray-100'
     }
   }
 
   const getComplianceColor = (status: string) => {
     switch (status) {
-      case 'COMPLIANT':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'WARNING':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'OVERDUE':
-        return 'bg-red-100 text-red-800 border-red-200'
+      case 'compliant':
+        return 'text-green-600 bg-green-100'
+      case 'warning':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'overdue':
+        return 'text-red-600 bg-red-100'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'text-gray-600 bg-gray-100'
     }
   }
 
   const getComplianceIcon = (status: string) => {
     switch (status) {
-      case 'COMPLIANT':
+      case 'compliant':
         return <CheckCircle className="w-4 h-4" />
-      case 'WARNING':
-        return <Clock className="w-4 h-4" />
-      case 'OVERDUE':
+      case 'warning':
         return <AlertTriangle className="w-4 h-4" />
+      case 'overdue':
+        return <Clock className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }
   }
 
   const filteredEquipment = equipment.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.model.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = typeFilter === 'all' || item.equipmentType === typeFilter
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.serialNumber.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter
-    
-    return matchesSearch && matchesType && matchesStatus
+    return matchesSearch && matchesStatus
   })
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow p-6">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Equipment Management</h1>
-              <p className="text-gray-600 mt-2">
-                Manage laboratory equipment, track calibrations, and monitor compliance
-              </p>
-              {error && (
-                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm text-yellow-800">
-                    {error} - Using demo data for preview
-                  </p>
-                </div>
-              )}
-            </div>
-            <Link
-              href="/dashboard/equipment/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Equipment
-            </Link>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Equipment Management</h1>
+          <p className="text-gray-600">Manage laboratory equipment and compliance tracking</p>
         </div>
+        <Button onClick={() => setShowAddModal(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Equipment
+        </Button>
+      </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Equipment
-              </label>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Equipment</p>
+                <p className="text-2xl font-bold text-gray-900">{equipment.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Settings className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Compliant</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {equipment.filter(e => e.complianceStatus === 'compliant').length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Due Soon</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {equipment.filter(e => e.complianceStatus === 'warning').length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Overdue</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {equipment.filter(e => e.complianceStatus === 'overdue').length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <Clock className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search by name, serial, or model..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                <Input
+                  placeholder="Search equipment..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
                 />
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Equipment Type
-              </label>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Types</option>
-                <option value="ANALYTICAL_BALANCE">Analytical Balance</option>
-                <option value="CENTRIFUGE">Centrifuge</option>
-                <option value="MICROSCOPE">Microscope</option>
-                <option value="INCUBATOR">Incubator</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-400" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
                 <option value="all">All Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="MAINTENANCE">Maintenance</option>
-                <option value="INACTIVE">Inactive</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="retired">Retired</option>
               </select>
             </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setTypeFilter('all')
-                  setStatusFilter('all')
-                }}
-                className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Clear Filters
-              </button>
-            </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Equipment Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEquipment.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
-            >
-              {/* Header */}
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(item.status)}`}>
-                    {item.status}
-                  </div>
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getComplianceColor(item.complianceStatus)}`}>
-                    {getComplianceIcon(item.complianceStatus)}
-                    <span className="ml-1">{item.complianceStatus}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Equipment Info */}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {item.name}
-                </h3>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex justify-between">
-                    <span>Model:</span>
-                    <span className="font-medium">{item.model}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Serial:</span>
-                    <span className="font-medium">{item.serialNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Manufacturer:</span>
-                    <span className="font-medium">{item.manufacturer}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Type:</span>
-                    <span className="font-medium">{item.equipmentType.replace('_', ' ')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Location:</span>
-                    <span className="font-medium">{item.location}</span>
-                  </div>
-                </div>
-
-                {/* Compliance Score */}
-                <div className="mt-4 p-3 bg-gray-50 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Compliance Score</span>
-                    <span className="text-lg font-semibold text-gray-900">{item.complianceScore}%</span>
-                  </div>
-                </div>
-
-                {/* Calibration Info */}
-                {item.nextCalibration && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-md">
-                    <div className="flex items-center text-blue-700">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span className="text-sm">
-                        Next calibration: {new Date(item.nextCalibration).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex space-x-2">
-                  <Link
-                    href={`/dashboard/equipment/${item.id}`}
-                    className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View
-                  </Link>
-                  <Link
-                    href={`/dashboard/equipment/${item.id}/edit`}
-                    className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Link>
-                  <button className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredEquipment.length === 0 && (
-          <div className="text-center py-12">
-            <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
-                ? 'No equipment matches your filters'
-                : 'No equipment added yet'
-              }
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
-                ? 'Try adjusting your search criteria or filters.'
-                : 'Add your first piece of equipment to get started.'
-              }
-            </p>
-            <Link
-              href="/dashboard/equipment/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Equipment
-            </Link>
+      {/* Equipment Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Equipment Inventory</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Equipment</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Type</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Location</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Compliance</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Next Calibration</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEquipment.map((item) => (
+                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-4">
+                      <div>
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-500">{item.serialNumber}</div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-gray-900">{item.type}</div>
+                      <div className="text-xs text-gray-500">{item.model}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-gray-900">{item.location}</div>
+                      <div className="text-xs text-gray-500">{item.department}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.status}
+                      </Badge>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        {getComplianceIcon(item.complianceStatus)}
+                        <Badge className={getComplianceColor(item.complianceStatus)}>
+                          {item.complianceStatus}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-gray-900">{item.nextCalibration}</div>
+                      <div className="text-xs text-gray-500">
+                        {item.responsiblePerson}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => console.log('View', item.id)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => console.log('Edit', item.id)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => console.log('Delete', item.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 } 

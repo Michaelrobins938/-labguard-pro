@@ -1,0 +1,171 @@
+groups:
+  - name: labguard_alerts
+    rules:
+      # System Health Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 5 minutes"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% for more than 5 minutes"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is above 90% for more than 5 minutes"
+
+      # Application Health Alerts
+      - alert: APIDown
+        expr: up{job="labguard-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LabGuard API is down"
+          description: "The API service has been down for more than 1 minute"
+
+      - alert: WebAppDown
+        expr: up{job="labguard-web"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LabGuard Web App is down"
+          description: "The web application has been down for more than 1 minute"
+
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database has been down for more than 1 minute"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 1 minute"
+
+      # Performance Alerts
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is above 2 seconds"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate"
+          description: "Error rate is above 5% for more than 5 minutes"
+
+      # Business Metrics Alerts
+      - alert: CalibrationFailures
+        expr: rate(calibrations_total{status="failed"}[1h]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High calibration failure rate"
+          description: "Calibration failure rate is above 10% in the last hour"
+
+      - alert: EquipmentOverdue
+        expr: equipment_status{status="overdue"} > 5
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Equipment overdue for calibration"
+          description: "More than 5 pieces of equipment are overdue for calibration"
+
+      - alert: AIUsageSpike
+        expr: rate(ai_requests_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AI usage detected"
+          description: "AI requests are spiking above 100 per minute"
+
+      # Security Alerts
+      - alert: HighFailedLogins
+        expr: rate(auth_failed_logins_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High failed login attempts"
+          description: "More than 10 failed login attempts per minute"
+
+      - alert: UnusualAPIUsage
+        expr: rate(http_requests_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusual API usage detected"
+          description: "API requests are significantly higher than normal"
+
+      # Database Alerts
+      - alert: SlowQueries
+        expr: rate(db_query_duration_seconds_sum[5m]) / rate(db_query_duration_seconds_count[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is above 1 second"
+
+      - alert: DatabaseConnections
+        expr: db_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection count"
+          description: "More than 80 active database connections"
+
+      # Subscription Alerts
+      - alert: SubscriptionCancellations
+        expr: rate(subscription_events_total{event="cancelled"}[1h]) > 0.1
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "High subscription cancellation rate"
+          description: "Subscription cancellation rate is above 10% in the last hour"
+
+      - alert: LowUserActivity
+        expr: rate(user_actions_total[1h]) < 10
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low user activity detected"
+          description: "User activity is below 10 actions per hour" 

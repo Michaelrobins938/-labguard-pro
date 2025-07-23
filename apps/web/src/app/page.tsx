@@ -2,6 +2,8 @@
 
 import { Navigation } from '@/components/landing/Navigation'
 import { HeroSection } from '@/components/landing/HeroSection'
+import { BiomniShowcase } from '@/components/landing/BiomniShowcase'
+import { BiomniContributors } from '@/components/home/BiomniContributors'
 import { FeaturesSection } from '@/components/landing/FeaturesSection'
 import { ProblemSolutionSection } from '@/components/landing/ProblemSolutionSection'
 import { BenefitsSection } from '@/components/landing/BenefitsSection'
@@ -18,6 +20,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white">
       <Navigation />
       <HeroSection />
+      <BiomniShowcase />
+      <BiomniContributors />
       <ProblemSolutionSection />
       <FeaturesSection />
       <BenefitsSection />

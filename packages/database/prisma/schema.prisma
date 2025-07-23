@@ -11,838 +11,350 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User and Authentication
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  emailVerified    DateTime?
-  name             String?
-  image            String?
-  hashedPassword   String?
-  role             UserRole  @default(TECHNICIAN)
-  isActive         Boolean   @default(true)
-  lastLoginAt      DateTime?
-  phone            String?
-  timezone         String    @default("UTC")
-  language         String    @default("en")
-  bio              String?   @db.Text
-  certifications   Json      @default("[]")
-  skills           Json      @default("[]")
-  emergencyContact Json?     @default("{}")
-  preferences      Json      @default("{}")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime?
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  // Relationships
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  // Relations
+  laboratoryId  String?
+  laboratory    Laboratory? @relation(fields: [laboratoryId], references: [id], onDelete: SetNull)
+  calibrations  CalibrationRecord[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
 
-  // User activities
-  equipmentOperations    EquipmentOperation[]
-  calibrationRecords     CalibrationRecord[]
-  complianceReports      ComplianceReport[]
-  notifications          Notification[]
-  notificationHistory    NotificationHistory[]
-  notificationPreference NotificationPreference?
-  createdEquipment       Equipment[]             @relation("CreatedBy")
-
-  // Team management
-  invitations         UserInvitation[] @relation("InvitedBy")
-  receivedInvitations UserInvitation[] @relation("InvitedUser")
-  teamActivities      TeamActivity[]
-  assignments         Assignment[]
-  createdAssignments  Assignment[]     @relation("AssignedBy")
-  userProfile         UserProfile?
-
-  // Authentication
-  accounts Account[]
-  sessions Session[]
-
+  // Indexes for performance
+  @@index([email])
+  @@index([laboratoryId])
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("users")
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
 }
 
 model Laboratory {
   id          String   @id @default(cuid())
   name        String
-  description String?  @db.Text
-  address     String?
+  email       String   @unique
   phone       String?
-  email       String?
+  address     String?
   website     String?
-  settings    Json     @default("{}")
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relationships
-  users                   User[]
-  equipment               Equipment[]
-  calibrations            CalibrationRecord[]
-  complianceReports       ComplianceReport[]
-  notificationTemplates   NotificationTemplate[]
-  notificationPreferences NotificationPreference[]
-  userInvitations         UserInvitation[]
-  teamActivities          TeamActivity[]
-  subscriptions           Subscription[]
-  invoices                Invoice[]
-  paymentMethods          PaymentMethod[]
-  billingEvents           BillingEvent[]
-  billingSettings         BillingSettings?
-  ComplianceTemplate      ComplianceTemplate[]
-  Assignment              Assignment[]
+  // Relations
+  users       User[]
+  equipment   Equipment[]
+  calibrations CalibrationRecord[]
+  subscriptions Subscription[]
+  notifications Notification[]
+  auditLogs   AuditLog[]
 
+  // Indexes for performance
+  @@index([email])
+  @@index([isActive])
+  @@index([createdAt])
   @@map("laboratories")
 }
 
+// Equipment Management
 model Equipment {
-  id                  String          @id @default(cuid())
-  name                String
-  model               String
-  serialNumber        String
-  manufacturer        String
-  equipmentType       EquipmentType
-  location            String?
-  installDate         DateTime?
-  warrantyExpiry      DateTime?
-  status              EquipmentStatus @default(ACTIVE)
-  specifications      Json            @default("{}")
-  maintenanceSchedule Json            @default("{}")
-  
-  // Enhanced fields for detail pages
-  description         String?         @db.Text
-  purchaseDate        DateTime?
-  purchasePrice       Float?
-  supplier            String?
-  operatingRange      Json            @default("{}")
-  accuracySpecs       Json            @default("{}")
-  environmentalReqs   Json            @default("{}")
-  calibrationReqs     Json            @default("{}")
-  performanceMetrics  Json            @default("{}")
-  costAnalysis        Json            @default("{}")
-  lifecycleStage      EquipmentLifecycleStage @default(OPERATIONAL)
-  qrCode              String?
-  tags                Json            @default("[]")
-  metadata            Json            @default("{}")
-  
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  deletedAt           DateTime?
+  id              String           @id @default(cuid())
+  name            String
+  model           String?
+  serialNumber    String?          @unique
+  manufacturer    String?
+  location        String?
+  status          EquipmentStatus  @default(ACTIVE)
+  lastCalibrated  DateTime?
+  nextCalibration DateTime?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  // Relationships
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  createdById  String
-  createdBy    User       @relation("CreatedBy", fields: [createdById], references: [id])
+  // Relations
+  laboratoryId    String
+  laboratory      Laboratory       @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  calibrations    CalibrationRecord[]
+  maintenance     MaintenanceRecord[]
 
-  calibrationRecords  CalibrationRecord[]
-  maintenanceRecords  MaintenanceRecord[]
-  equipmentOperations EquipmentOperation[]
-  equipmentPhotos     EquipmentPhoto[]
-  equipmentDocuments  EquipmentDocument[]
-  equipmentRelations  EquipmentRelation[]
-  performanceLogs     PerformanceLog[]
-  
-  @@unique([laboratoryId, serialNumber])
+  // Indexes for performance
+  @@index([laboratoryId])
+  @@index([status])
+  @@index([nextCalibration])
+  @@index([serialNumber])
+  @@index([createdAt])
   @@map("equipment")
 }
 
-model EquipmentPhoto {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String
-  mimeType    String
-  size        Int
-  url         String
-  caption     String?
-  category    PhotoCategory
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
-
-  // Relationships
-  equipmentId String
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  
-  @@map("equipment_photos")
-}
-
-model EquipmentDocument {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String
-  mimeType    String
-  size        Int
-  url         String
-  title       String
-  description String?  @db.Text
-  category    DocumentCategory
-  version     String   @default("1.0")
-  isApproved  Boolean  @default(false)
-  approvedBy  String?
-  approvedAt  DateTime?
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relationships
-  equipmentId String
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  uploadedById String
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
-  
-  @@map("equipment_documents")
-}
-
-model EquipmentRelation {
-  id          String   @id @default(cuid())
-  type        RelationType
-  description String?  @db.Text
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
-
-  // Relationships
-  sourceEquipmentId String
-  sourceEquipment   Equipment @relation("SourceEquipment", fields: [sourceEquipmentId], references: [id], onDelete: Cascade)
-  targetEquipmentId String
-  targetEquipment   Equipment @relation("TargetEquipment", fields: [targetEquipmentId], references: [id], onDelete: Cascade)
-  
-  @@map("equipment_relations")
-}
-
-model PerformanceLog {
-  id          String   @id @default(cuid())
-  timestamp   DateTime
-  metric      String
-  value       Float
-  unit        String?
-  status      PerformanceStatus @default(NORMAL)
-  notes       String?  @db.Text
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
-
-  // Relationships
-  equipmentId String
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  recordedById String?
-  recordedBy   User?    @relation(fields: [recordedById], references: [id])
-  
-  @@map("performance_logs")
-}
-
+// Calibration Records
 model CalibrationRecord {
-  id                      String            @id @default(cuid())
-  calibrationType         CalibrationType
-  scheduledDate           DateTime
-  performedDate           DateTime?
-  dueDate                 DateTime
-  status                  CalibrationStatus @default(SCHEDULED)
-  results                 Json              @default("{}")
-  measurements            Json              @default("{}")
-  environmentalConditions Json              @default("{}")
-  standardsUsed           Json              @default("{}")
-  complianceStatus        ComplianceStatus  @default(PENDING)
-  complianceScore         Float?
-  deviations              Json              @default("[]")
-  correctiveActions       Json              @default("[]")
-  certificate             String?
-  notes                   String?
-  aiAnalysis              Json?
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
-  deletedAt               DateTime?
+  id              String              @id @default(cuid())
+  equipmentId     String
+  equipment       Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  laboratoryId    String
+  laboratory      Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  
+  calibrationDate DateTime
+  dueDate         DateTime
+  status          CalibrationStatus  @default(PENDING)
+  result          CalibrationResult  @default(PASS)
+  notes           String?
+  aiValidation    Json?              // AI compliance check results
+  complianceScore Float?             // 0-100 compliance score
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  // Relationships
-  equipmentId   String
-  equipment     Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  performedById String?
-  performedBy   User?               @relation(fields: [performedById], references: [id])
-  templateId    String?
-  template      ComplianceTemplate? @relation(fields: [templateId], references: [id])
-  Laboratory    Laboratory?         @relation(fields: [laboratoryId], references: [id])
-  laboratoryId  String?
-
+  // Indexes for performance
+  @@index([equipmentId])
+  @@index([userId])
+  @@index([laboratoryId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([calibrationDate])
+  @@index([complianceScore])
+  @@index([createdAt])
   @@map("calibration_records")
 }
 
-model ComplianceTemplate {
-  id                 String    @id @default(cuid())
-  name               String
-  description        String?
-  category           String
-  promptTemplate     String    @db.Text
-  variables          Json      @default("[]")
-  safetyChecks       Json      @default("[]")
-  acceptanceCriteria Json      @default("{}")
-  version            String    @default("1.0")
-  isActive           Boolean   @default(true)
-  usage_count        Int       @default(0)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  deletedAt          DateTime?
-
-  // Relationships
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  calibrationRecords CalibrationRecord[]
-  complianceReports  ComplianceReport[]
-
-  @@map("compliance_templates")
-}
-
-model ComplianceReport {
-  id              String       @id @default(cuid())
-  title           String
-  reportType      ReportType
-  generatedDate   DateTime     @default(now())
-  reportPeriod    Json         @default("{}")
-  data            Json         @default("{}")
-  findings        Json         @default("[]")
-  recommendations Json         @default("[]")
-  complianceScore Float?
-  status          ReportStatus @default(DRAFT)
-  pdfPath         String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?
-
-  // Relationships
-  laboratoryId  String
-  laboratory    Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  generatedById String
-  generatedBy   User                @relation(fields: [generatedById], references: [id])
-  templateId    String?
-  template      ComplianceTemplate? @relation(fields: [templateId], references: [id])
-
-  @@map("compliance_reports")
-}
-
+// Maintenance Records
 model MaintenanceRecord {
-  id                  String            @id @default(cuid())
-  maintenanceType     MaintenanceType
-  scheduledDate       DateTime
-  performedDate       DateTime?
-  description         String
-  partsReplaced       Json              @default("[]")
-  cost                Float?
-  performedBy         String?
-  vendorInformation   Json?
-  nextMaintenanceDate DateTime?
-  status              MaintenanceStatus @default(SCHEDULED)
-  notes               String?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  deletedAt           DateTime?
+  id              String              @id @default(cuid())
+  equipmentId     String
+  equipment       Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  maintenanceDate DateTime
+  type            MaintenanceType
+  description     String
+  performedBy     String?
+  cost            Float?
+  status          MaintenanceStatus  @default(COMPLETED)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  // Relationships
-  equipmentId String
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-
+  // Indexes for performance
+  @@index([equipmentId])
+  @@index([maintenanceDate])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
   @@map("maintenance_records")
 }
 
-model EquipmentOperation {
-  id            String          @id @default(cuid())
-  operationType OperationType
-  startTime     DateTime
-  endTime       DateTime?
-  parameters    Json            @default("{}")
-  results       Json            @default("{}")
-  qcData        Json            @default("{}")
-  status        OperationStatus @default(IN_PROGRESS)
-  notes         String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+// Notifications
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  laboratoryId String
+  laboratory  Laboratory       @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  metadata    Json?            // Additional data for the notification
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  // Relationships
-  equipmentId String
-  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-  operatorId  String
-  operator    User      @relation(fields: [operatorId], references: [id])
-
-  @@map("equipment_operations")
+  // Indexes for performance
+  @@index([userId])
+  @@index([laboratoryId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
+// Audit Logs
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  laboratoryId String
+  laboratory  Laboratory  @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  action      String      // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entity      String      // Equipment, Calibration, User, etc.
+  entityId    String?     // ID of the affected entity
+  details     Json?       // Additional details about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  // Indexes for performance
+  @@index([userId])
+  @@index([laboratoryId])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Subscription Management
 model Subscription {
-  id                 String             @id @default(cuid())
-  stripeId           String?            @unique
-  status             SubscriptionStatus @default(ACTIVE)
-  planId             String
-  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  id                String              @id @default(cuid())
+  laboratoryId      String              @unique
+  laboratory        Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  planId            String
+  plan              SubscriptionPlan    @relation(fields: [planId], references: [id])
+  stripeId          String?            @unique
+  stripeCustomerId  String?
+  status            SubscriptionStatus  @default(ACTIVE)
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean            @default(false)
-  canceledAt         DateTime?
-  endedAt            DateTime?
   trialStart         DateTime?
   trialEnd           DateTime?
-  quantity           Int                @default(1)
-  metadata           Json               @default("{}")
+  cancelAtPeriodEnd  Boolean           @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  // Relationships
-  laboratoryId   String
-  laboratory     Laboratory      @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  invoices       Invoice[]
-  usageRecords   UsageRecord[]
-  paymentMethods PaymentMethod[]
-
+  // Indexes for performance
+  @@index([planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@index([createdAt])
   @@map("subscriptions")
 }
 
 model SubscriptionPlan {
-  id              String          @id @default(cuid())
-  stripeId        String?         @unique
-  name            String
-  description     String?         @db.Text
-  price           Float
-  currency        String          @default("USD")
-  interval        BillingInterval @default(MONTHLY)
-  intervalCount   Int             @default(1)
-  trialPeriodDays Int?            @default(0)
-  features        Json            @default("{}")
-  limits          Json            @default("{}")
-  isActive        Boolean         @default(true)
-  sortOrder       Int             @default(0)
-  metadata        Json            @default("{}")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  price             Float
+  currency          String   @default("USD")
+  interval          String   @default("month") // month, year
+  stripeId          String?  @unique
+  equipmentLimit    Int      @default(10)
+  aiChecksLimit     Int      @default(100)
+  teamMembersLimit  Int      @default(5)
+  storageLimit      Int      @default(10) // GB
+  features          Json     // Array of feature names
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  // Relationships
-  subscriptions Subscription[]
+  // Relations
+  subscriptions     Subscription[]
 
+  // Indexes for performance
+  @@index([isActive])
+  @@index([price])
+  @@index([createdAt])
   @@map("subscription_plans")
 }
 
-model Invoice {
-  id          String        @id @default(cuid())
-  stripeId    String?       @unique
-  number      String        @unique
-  status      InvoiceStatus @default(DRAFT)
-  amount      Float
-  currency    String        @default("USD")
-  taxAmount   Float         @default(0)
-  totalAmount Float
-  subtotal    Float
-  description String?       @db.Text
-  dueDate     DateTime?
-  paidAt      DateTime?
-  voidedAt    DateTime?
-  metadata    Json          @default("{}")
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+// AI Compliance Templates
+model ComplianceTemplate {
+  id                String   @id @default(cuid())
+  title             String
+  category          TemplateCategory
+  useCase           String
+  promptTemplate    String   @db.Text
+  variables         Json     // Array of template variables
+  safetyChecks      String[] // Array of safety check names
+  validationCriteria Json    // Validation criteria object
+  regulatoryStandards String[] // Array of regulatory standards
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  // Relationships
-  subscriptionId  String?
-  subscription    Subscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  laboratoryId    String
-  laboratory      Laboratory     @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  paymentMethodId String?
-  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
-  invoiceItems    InvoiceItem[]
+  // Relations
+  usageRecords      TemplateUsage[]
 
-  @@map("invoices")
+  // Indexes for performance
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("compliance_templates")
 }
 
-model InvoiceItem {
-  id          String   @id @default(cuid())
-  stripeId    String?  @unique
-  description String
-  quantity    Int      @default(1)
-  unitAmount  Float
-  totalAmount Float
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now())
+model TemplateUsage {
+  id                String   @id @default(cuid())
+  templateId        String
+  template          ComplianceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId            String
+  laboratoryId      String
+  query             String
+  result            Json?
+  executionTime     Int?     // milliseconds
+  cost              Float?
+  createdAt         DateTime @default(now())
 
-  // Relationships
-  invoiceId String
-  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@map("invoice_items")
+  // Indexes for performance
+  @@index([templateId])
+  @@index([userId])
+  @@index([laboratoryId])
+  @@index([createdAt])
+  @@map("template_usage")
 }
 
-model PaymentMethod {
-  id          String            @id @default(cuid())
-  stripeId    String?           @unique
-  type        PaymentMethodType
-  brand       String?
-  last4       String?
-  expMonth    Int?
-  expYear     Int?
-  fingerprint String?
-  country     String?
-  isDefault   Boolean           @default(false)
-  metadata    Json              @default("{}")
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+// Biomni Integration
+model BiomniQuery {
+  id                String   @id @default(cuid())
+  query             String
+  context           String?
+  userId            String
+  laboratoryId      String
+  result            Json?
+  toolsUsed         String[]
+  databasesQueried  String[]
+  confidence        Float?
+  executionTime     Int?     // milliseconds
+  cost              Float?
+  status            QueryStatus @default(EXECUTING)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  // Relationships
-  laboratoryId   String
-  laboratory     Laboratory    @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  subscriptionId String?
-  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  invoices       Invoice[]
-
-  @@map("payment_methods")
-}
-
-model UsageRecord {
-  id        String      @id @default(cuid())
-  stripeId  String?     @unique
-  quantity  Int
-  timestamp DateTime
-  action    UsageAction @default(INCREMENT)
-  metadata  Json        @default("{}")
-  createdAt DateTime    @default(now())
-
-  // Relationships
-  subscriptionId String
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@map("usage_records")
-}
-
-model BillingEvent {
-  id          String             @id @default(cuid())
-  stripeId    String?            @unique
-  type        BillingEventType
-  status      BillingEventStatus @default(PENDING)
-  amount      Float?
-  currency    String             @default("USD")
-  description String?            @db.Text
-  metadata    Json               @default("{}")
-  processedAt DateTime?
-  createdAt   DateTime           @default(now())
-
-  // Relationships
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  @@map("billing_events")
-}
-
-model BillingSettings {
-  id              String   @id @default(cuid())
-  autoPay         Boolean  @default(true)
-  emailInvoices   Boolean  @default(true)
-  taxExempt       Boolean  @default(false)
-  taxId           String?
-  billingAddress  Json     @default("{}")
-  invoiceSettings Json     @default("{}")
-  metadata        Json     @default("{}")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relationships
-  laboratoryId String     @unique
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  @@map("billing_settings")
-}
-
-model Notification {
-  id               String               @id @default(cuid())
-  type             NotificationType
-  title            String
-  message          String               @db.Text
-  isRead           Boolean              @default(false)
-  priority         NotificationPriority @default(NORMAL)
-  scheduledFor     DateTime?
-  sentAt           DateTime?
-  deliveredAt      DateTime?
-  failedAt         DateTime?
-  retryCount       Int                  @default(0)
-  maxRetries       Int                  @default(3)
-  deliveryChannels Json                 @default("[]") // ["email", "sms", "in_app", "browser"]
-  deliveryStatus   DeliveryStatus       @default(PENDING)
-  templateId       String?
-  escalationLevel  Int                  @default(0)
-  acknowledgedAt   DateTime?
-  acknowledgedBy   String?
-  metadata         Json                 @default("{}")
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-
-  // Relationships
-  userId  String
-  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  history NotificationHistory[]
-
-  @@map("notifications")
-}
-
-model NotificationTemplate {
-  id         String           @id @default(cuid())
-  name       String
-  type       NotificationType
-  subject    String
-  body       String           @db.Text
-  htmlBody   String           @db.Text
-  smsBody    String?
-  variables  Json             @default("{}")
-  isActive   Boolean          @default(true)
-  version    Int              @default(1)
-  createdBy  String
-  approvedBy String?
-  approvedAt DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-
-  // Relationships
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  @@map("notification_templates")
-}
-
-model NotificationPreference {
-  id                String                @id @default(cuid())
-  userId            String                @unique
-  emailEnabled      Boolean               @default(true)
-  smsEnabled        Boolean               @default(false)
-  inAppEnabled      Boolean               @default(true)
-  browserEnabled    Boolean               @default(true)
-  quietHoursStart   String? // Format: "HH:MM"
-  quietHoursEnd     String? // Format: "HH:MM"
-  timezone          String                @default("UTC")
-  frequency         NotificationFrequency @default(IMMEDIATE)
-  emergencyOverride Boolean               @default(true)
-  preferences       Json                  @default("{}") // Per-type preferences
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-
-  // Relationships
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Laboratory   Laboratory? @relation(fields: [laboratoryId], references: [id])
-  laboratoryId String?
-
-  @@map("notification_preferences")
-}
-
-model NotificationHistory {
-  id             String             @id @default(cuid())
-  notificationId String
-  action         NotificationAction
-  performedBy    String?
-  performedAt    DateTime           @default(now())
-  metadata       Json               @default("{}")
-
-  // Relationships
-  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  User         User?        @relation(fields: [userId], references: [id])
-  userId       String?
-
-  @@map("notification_history")
-}
-
-model UserInvitation {
-  id         String           @id @default(cuid())
-  email      String
-  role       UserRole
-  message    String?          @db.Text
-  status     InvitationStatus @default(PENDING)
-  expiresAt  DateTime
-  acceptedAt DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-
-  // Relationships
-  laboratoryId  String
-  laboratory    Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-  invitedById   String
-  invitedBy     User       @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
-  invitedUserId String?
-  invitedUser   User?      @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
-
-  @@map("user_invitations")
-}
-
-model UserProfile {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  title        String?
-  department   String?
-  location     String?
-  employeeId   String?
-  hireDate     DateTime?
-  supervisorId String?
-  workSchedule Json      @default("{}")
-  availability Json      @default("{}")
-  performance  Json      @default("{}")
-  goals        Json      @default("[]")
-  achievements Json      @default("[]")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Relationships
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_profiles")
-}
-
-model TeamActivity {
-  id          String           @id @default(cuid())
-  type        TeamActivityType
-  title       String
-  description String?          @db.Text
-  metadata    Json             @default("{}")
-  createdAt   DateTime         @default(now())
-
-  // Relationships
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  @@map("team_activities")
-}
-
-model Assignment {
-  id             String             @id @default(cuid())
-  title          String
-  description    String?            @db.Text
-  type           AssignmentType
-  priority       AssignmentPriority @default(NORMAL)
-  status         AssignmentStatus   @default(PENDING)
-  dueDate        DateTime?
-  completedAt    DateTime?
-  estimatedHours Float?
-  actualHours    Float?
-  notes          String?            @db.Text
-  metadata       Json               @default("{}")
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-
-  // Relationships
-  assignedToId String
-  assignedTo   User       @relation(fields: [assignedToId], references: [id], onDelete: Cascade)
-  assignedById String
-  assignedBy   User       @relation("AssignedBy", fields: [assignedById], references: [id], onDelete: Cascade)
-  laboratoryId String
-  laboratory   Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
-
-  @@map("assignments")
+  // Indexes for performance
+  @@index([userId])
+  @@index([laboratoryId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("biomni_queries")
 }
 
 // Enums
 enum UserRole {
   ADMIN
-  SUPERVISOR
+  MANAGER
   TECHNICIAN
-  VIEWER
-}
-
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  EXPIRED
-  CANCELLED
-}
-
-enum EquipmentType {
-  ANALYTICAL_BALANCE
-  PIPETTE
-  CENTRIFUGE
-  INCUBATOR
-  AUTOCLAVE
-  SPECTROPHOTOMETER
-  PCR_MACHINE
-  MICROSCOPE
-  WATER_BATH
-  REFRIGERATOR
-  FREEZER
-  OTHER
+  USER
 }
 
 enum EquipmentStatus {
   ACTIVE
   INACTIVE
   MAINTENANCE
-  CALIBRATION_DUE
-  OUT_OF_SERVICE
   RETIRED
 }
 
-enum CalibrationType {
-  INITIAL
-  PERIODIC
-  AFTER_REPAIR
-  VERIFICATION
-  INTERIM_CHECK
-}
-
 enum CalibrationStatus {
-  SCHEDULED
+  PENDING
   IN_PROGRESS
   COMPLETED
   OVERDUE
   CANCELLED
-  FAILED
 }
 
-enum ComplianceStatus {
-  COMPLIANT
-  NON_COMPLIANT
+enum CalibrationResult {
+  PASS
+  FAIL
   CONDITIONAL
-  PENDING
-  UNDER_REVIEW
-}
-
-enum ReportType {
-  EQUIPMENT_SUMMARY
-  CALIBRATION_SUMMARY
-  COMPLIANCE_AUDIT
-  MONTHLY_REPORT
-  QUARTERLY_REPORT
-  ANNUAL_REPORT
-  CUSTOM
-}
-
-enum ReportStatus {
-  DRAFT
-  PENDING_REVIEW
-  APPROVED
-  PUBLISHED
-  ARCHIVED
 }
 
 enum MaintenanceType {
   PREVENTIVE
   CORRECTIVE
   EMERGENCY
-  UPGRADE
-  CLEANING
 }
 
 enum MaintenanceStatus {
@@ -850,229 +362,35 @@ enum MaintenanceStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-  OVERDUE
-}
-
-enum OperationType {
-  ROUTINE_TEST
-  CALIBRATION_CHECK
-  QUALITY_CONTROL
-  SAMPLE_ANALYSIS
-  MAINTENANCE_TEST
-}
-
-enum OperationStatus {
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELED
-  INCOMPLETE
-  INCOMPLETE_EXPIRED
-  PAST_DUE
-  TRIALING
-  UNPAID
-  PAUSED
-}
-
-enum BillingCycle {
-  MONTHLY
-  QUARTERLY
-  YEARLY
 }
 
 enum NotificationType {
   CALIBRATION_DUE
   CALIBRATION_OVERDUE
   MAINTENANCE_DUE
-  COMPLIANCE_ALERT
-  SYSTEM_NOTIFICATION
-  BILLING_ALERT
-  TEAM_ACTIVITY
-  EQUIPMENT_FAILURE
-  REPORT_GENERATED
-  USER_INVITATION
-  ROLE_CHANGE
-  SUBSCRIPTION_ALERT
+  SYSTEM_ALERT
+  USER_INVITE
+  SUBSCRIPTION_UPDATE
 }
 
-enum NotificationPriority {
-  LOW
-  NORMAL
-  HIGH
-  CRITICAL
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  UNPAID
 }
 
-enum DeliveryStatus {
-  PENDING
-  SENT
-  DELIVERED
-  FAILED
-  BOUNCED
-  UNSUBSCRIBED
+enum TemplateCategory {
+  EQUIPMENT_CALIBRATION
+  SAMPLE_HANDLING
+  RESULT_VALIDATION
+  AUDIT_PREPARATION
 }
 
-enum NotificationFrequency {
-  IMMEDIATE
-  DAILY_DIGEST
-  WEEKLY_DIGEST
-  NEVER
-}
-
-enum NotificationAction {
-  SENT
-  DELIVERED
-  OPENED
-  CLICKED
-  FAILED
-  BOUNCED
-  UNSUBSCRIBED
-  MARKED_READ
-  MARKED_UNREAD
-  DELETED
-}
-
-enum TeamActivityType {
-  CALIBRATION_COMPLETED
-  EQUIPMENT_ADDED
-  REPORT_GENERATED
-  USER_JOINED
-  USER_LEFT
-  ASSIGNMENT_CREATED
-  ASSIGNMENT_COMPLETED
-  COMPLIANCE_ALERT
-  MAINTENANCE_SCHEDULED
-  TRAINING_COMPLETED
-}
-
-enum AssignmentType {
-  CALIBRATION
-  MAINTENANCE
-  TRAINING
-  AUDIT
-  REPORT
-  INSPECTION
-  REPAIR
-  VERIFICATION
-}
-
-enum AssignmentPriority {
-  LOW
-  NORMAL
-  HIGH
-  CRITICAL
-}
-
-enum AssignmentStatus {
-  PENDING
-  IN_PROGRESS
+enum QueryStatus {
+  EXECUTING
   COMPLETED
-  CANCELLED
-  OVERDUE
-}
-
-enum BillingInterval {
-  DAILY
-  WEEKLY
-  MONTHLY
-  YEARLY
-}
-
-enum InvoiceStatus {
-  DRAFT
-  OPEN
-  PAID
-  VOID
-  UNCOLLECTIBLE
-}
-
-enum PaymentMethodType {
-  CARD
-  BANK_ACCOUNT
-  SEPA_DEBIT
-  IDEAL
-  SOFORT
-  BANCONTACT
-}
-
-enum UsageAction {
-  INCREMENT
-  SET
-}
-
-enum BillingEventType {
-  INVOICE_CREATED
-  INVOICE_PAID
-  INVOICE_PAYMENT_FAILED
-  SUBSCRIPTION_CREATED
-  SUBSCRIPTION_UPDATED
-  SUBSCRIPTION_DELETED
-  PAYMENT_METHOD_ATTACHED
-  PAYMENT_METHOD_DETACHED
-  CUSTOMER_CREATED
-  CUSTOMER_UPDATED
-  CUSTOMER_DELETED
-}
-
-enum BillingEventStatus {
-  PENDING
-  PROCESSED
   FAILED
   CANCELLED
-}
-
-enum EquipmentLifecycleStage {
-  PLANNING
-  PROCUREMENT
-  INSTALLATION
-  OPERATIONAL
-  MAINTENANCE
-  UPGRADE
-  DECOMMISSIONING
-  RETIRED
-}
-
-enum PhotoCategory {
-  INSTALLATION
-  MAINTENANCE
-  CONDITION
-  DAMAGE
-  SETUP
-  GENERAL
-}
-
-enum DocumentCategory {
-  MANUAL
-  SPECIFICATION
-  CERTIFICATE
-  WARRANTY
-  CONTRACT
-  REPORT
-  PROCEDURE
-  TRAINING
-  COMPLIANCE
-  OTHER
-}
-
-enum RelationType {
-  DEPENDS_ON
-  SUPPORTS
-  REPLACES
-  UPGRADES
-  CONNECTS_TO
-  SHARES_RESOURCE
-  SIMILAR_TO
-}
-
-enum PerformanceStatus {
-  EXCELLENT
-  GOOD
-  NORMAL
-  DEGRADED
-  POOR
-  FAILED
 }

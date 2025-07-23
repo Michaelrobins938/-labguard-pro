@@ -1,175 +1,339 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
-  Home, 
+  LayoutDashboard, 
   Settings, 
+  Users, 
   BarChart3, 
   FileText, 
-  Users, 
-  CreditCard,
-  Bell,
   Calendar,
   AlertTriangle,
   CheckCircle,
   Clock,
-  Activity,
-  Search,
-  Database,
+  Plus,
+  Brain,
+  Eye,
+  Target,
   Zap,
   Shield,
-  Key,
-  Upload,
-  Download,
-  Server,
-  Brain,
-  Eye
+  DollarSign,
+  HelpCircle,
+  MessageSquare
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Equipment', href: '/dashboard/equipment', icon: Settings },
-  { name: 'Calibrations', href: '/dashboard/calibrations', icon: CheckCircle },
-  { name: 'Due Soon', href: '/dashboard/calibrations/due', icon: Clock },
-  { name: 'Overdue', href: '/dashboard/calibrations/overdue', icon: AlertTriangle },
-  { name: 'Team', href: '/dashboard/team', icon: Users },
-  { name: 'Reports', href: '/dashboard/reports', icon: FileText },
-  { name: 'Compliance', href: '/dashboard/reports/compliance', icon: CheckCircle },
-  { name: 'Equipment Analytics', href: '/dashboard/reports/equipment', icon: BarChart3 },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Enterprise Analytics', href: '/dashboard/analytics/enterprise', icon: BarChart3 },
-  { name: 'Search', href: '/dashboard/search', icon: Search },
-  { name: 'Bulk Operations', href: '/dashboard/bulk-operations', icon: Upload },
-  { name: 'Data Management', href: '/dashboard/data-management', icon: Database },
-  { name: 'LIMS Integration', href: '/dashboard/integrations/lims', icon: Server },
-  { name: 'API Management', href: '/dashboard/api', icon: Key },
-  { name: 'Automation', href: '/dashboard/automation', icon: Zap },
-  { name: 'AI Predictive Maintenance', href: '/dashboard/ai/predictive-maintenance', icon: Brain },
-  { name: 'AI Anomaly Detection', href: '/dashboard/ai/anomaly-detection', icon: Eye },
-  { name: 'AI NLP Reports', href: '/dashboard/ai/nlp-reports', icon: FileText },
-  { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
-  { name: 'System Admin', href: '/admin/system', icon: Shield },
-]
+interface QuickAction {
+  id: string
+  title: string
+  description: string
+  icon: React.ReactNode
+  href: string
+  color: string
+}
 
-const billingSubNavigation = [
-  { name: 'Overview', href: '/dashboard/billing', icon: CreditCard },
-  { name: 'Subscription', href: '/dashboard/billing/subscription', icon: CreditCard },
-  { name: 'Payment Methods', href: '/dashboard/billing/payment-methods', icon: CreditCard },
-  { name: 'Invoices', href: '/dashboard/billing/invoices', icon: FileText },
-  { name: 'Usage', href: '/dashboard/billing/usage', icon: Activity },
-]
+interface EquipmentStatus {
+  id: string
+  name: string
+  status: 'compliant' | 'warning' | 'overdue' | 'maintenance'
+  lastCalibration: string
+  nextCalibration: string
+}
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const navigation = [
+    {
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      current: pathname === '/dashboard'
+    },
+    {
+      name: 'Equipment',
+      href: '/dashboard/equipment',
+      icon: Settings,
+      current: pathname.startsWith('/dashboard/equipment')
+    },
+    {
+      name: 'Calibrations',
+      href: '/dashboard/calibrations',
+      icon: Calendar,
+      current: pathname.startsWith('/dashboard/calibrations')
+    },
+    {
+      name: 'AI & Biomni',
+      href: '/dashboard/ai',
+      icon: Brain,
+      current: pathname.startsWith('/dashboard/ai')
+    },
+    {
+      name: 'Reports',
+      href: '/dashboard/reports',
+      icon: BarChart3,
+      current: pathname.startsWith('/dashboard/reports')
+    },
+    {
+      name: 'Team',
+      href: '/dashboard/team',
+      icon: Users,
+      current: pathname.startsWith('/dashboard/team')
+    },
+    {
+      name: 'Billing',
+      href: '/dashboard/billing',
+      icon: DollarSign,
+      current: pathname.startsWith('/dashboard/billing')
+    },
+    {
+      name: 'Settings',
+      href: '/dashboard/settings',
+      icon: Settings,
+      current: pathname.startsWith('/dashboard/settings')
+    }
+  ]
+
+  const quickActions: QuickAction[] = [
+    {
+      id: '1',
+      title: 'New Calibration',
+      description: 'Schedule equipment calibration',
+      icon: <Calendar className="w-5 h-5" />,
+      href: '/dashboard/calibrations/new',
+      color: 'from-blue-500 to-blue-600'
+    },
+    {
+      id: '2',
+      title: 'AI Analysis',
+      description: 'Run Biomni visual analysis',
+      icon: <Eye className="w-5 h-5" />,
+      href: '/dashboard/ai/visual-analysis',
+      color: 'from-purple-500 to-purple-600'
+    },
+    {
+      id: '3',
+      title: 'Add Equipment',
+      description: 'Register new equipment',
+      icon: <Plus className="w-5 h-5" />,
+      href: '/dashboard/equipment/new',
+      color: 'from-green-500 to-green-600'
+    },
+    {
+      id: '4',
+      title: 'Generate Report',
+      description: 'Create compliance report',
+      icon: <FileText className="w-5 h-5" />,
+      href: '/dashboard/reports/generate',
+      color: 'from-orange-500 to-orange-600'
+    }
+  ]
+
+  const equipmentStatus: EquipmentStatus[] = [
+    {
+      id: '1',
+      name: 'Analytical Balance PB-220',
+      status: 'compliant',
+      lastCalibration: '2024-01-15',
+      nextCalibration: '2024-02-15'
+    },
+    {
+      id: '2',
+      name: 'Centrifuge CF-16',
+      status: 'warning',
+      lastCalibration: '2024-01-10',
+      nextCalibration: '2024-02-10'
+    },
+    {
+      id: '3',
+      name: 'Incubator IC-200',
+      status: 'overdue',
+      lastCalibration: '2024-01-05',
+      nextCalibration: '2024-02-05'
+    },
+    {
+      id: '4',
+      name: 'pH Meter PH-100',
+      status: 'maintenance',
+      lastCalibration: '2024-01-20',
+      nextCalibration: '2024-02-20'
+    }
+  ]
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'compliant':
+        return 'text-green-600 bg-green-100'
+      case 'warning':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'overdue':
+        return 'text-red-600 bg-red-100'
+      case 'maintenance':
+        return 'text-blue-600 bg-blue-100'
+      default:
+        return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'compliant':
+        return <CheckCircle className="w-4 h-4" />
+      case 'warning':
+        return <AlertTriangle className="w-4 h-4" />
+      case 'overdue':
+        return <Clock className="w-4 h-4" />
+      case 'maintenance':
+        return <Settings className="w-4 h-4" />
+      default:
+        return <Clock className="w-4 h-4" />
+    }
+  }
 
   return (
-    <div className="w-64 bg-white shadow-lg min-h-screen border-r border-gray-200">
-      <div className="p-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Activity className="w-5 h-5 text-white" />
+    <div className={`bg-white border-r border-gray-200 h-screen ${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300`}>
+      {/* Logo */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        {!isCollapsed && (
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-bold text-gray-900">LabGuard</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">LabGuard Pro</span>
-        </div>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1"
+        >
+          <div className="w-4 h-4 flex flex-col justify-center items-center">
+            <div className={`w-4 h-0.5 bg-gray-600 transition-all duration-300 ${isCollapsed ? 'rotate-45 translate-y-0.5' : ''}`}></div>
+            <div className={`w-4 h-0.5 bg-gray-600 my-0.5 transition-all duration-300 ${isCollapsed ? 'opacity-0' : ''}`}></div>
+            <div className={`w-4 h-0.5 bg-gray-600 transition-all duration-300 ${isCollapsed ? '-rotate-45 -translate-y-0.5' : ''}`}></div>
+          </div>
+        </Button>
       </div>
-      
-      <nav className="mt-6">
-        <div className="px-4">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Navigation
-          </div>
-        </div>
-        
-        <div className="space-y-1">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-            
-            return (
-              <div key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`
-                    flex items-center px-4 py-3 text-sm font-medium rounded-lg mx-3 mb-1
-                    ${isActive 
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                    }
-                  `}
-                >
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.name}
-                </Link>
-                
-                {/* Show billing sub-navigation when on billing pages */}
-                {item.name === 'Billing' && isActive && (
-                  <div className="ml-8 mt-2 space-y-1">
-                    {billingSubNavigation.map((subItem) => {
-                      const isSubActive = pathname === subItem.href
-                      return (
-                        <Link
-                          key={subItem.name}
-                          href={subItem.href}
-                          className={`
-                            flex items-center px-3 py-2 text-xs font-medium rounded
-                            ${isSubActive 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'text-gray-600 hover:text-blue-600'
-                            }
-                          `}
-                        >
-                          <subItem.icon className="w-3 h-3 mr-2" />
-                          {subItem.name}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+
+      {/* Navigation */}
+      <nav className="p-4 space-y-2">
+        {navigation.map((item) => {
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                item.current
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              {!isCollapsed && <span>{item.name}</span>}
+            </Link>
+          )
+        })}
       </nav>
-      
-      <div className="absolute bottom-0 w-64 p-4">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+
+      {/* Quick Actions */}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
             Quick Actions
-          </div>
+          </h3>
           <div className="space-y-2">
-            <Link
-              href="/dashboard/calibrations/new"
-              className="flex items-center text-sm text-gray-700 hover:text-blue-600"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Schedule Calibration
-            </Link>
-            <Link
-              href="/dashboard/equipment/new"
-              className="flex items-center text-sm text-gray-700 hover:text-blue-600"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Add Equipment
-            </Link>
-            <Link
-              href="/dashboard/team/invite"
-              className="flex items-center text-sm text-gray-700 hover:text-blue-600"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Invite Team Member
-            </Link>
-            <Link
-              href="/dashboard/notifications"
-              className="flex items-center text-sm text-gray-700 hover:text-blue-600"
-            >
-              <Bell className="w-4 h-4 mr-2" />
-              View Notifications
-            </Link>
+            {quickActions.map((action) => (
+              <Link
+                key={action.id}
+                href={action.href}
+                className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200 group"
+              >
+                <div className={`w-8 h-8 bg-gradient-to-r ${action.color} rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-200`}>
+                  {action.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900">
+                    {action.title}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {action.description}
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Equipment Status */}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            Equipment Status
+          </h3>
+          <div className="space-y-2">
+            {equipmentStatus.map((equipment) => (
+              <div
+                key={equipment.id}
+                className="p-3 rounded-lg bg-gray-50 border border-gray-200"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    {getStatusIcon(equipment.status)}
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      {equipment.name}
+                    </span>
+                  </div>
+                  <Badge className={`text-xs ${getStatusColor(equipment.status)}`}>
+                    {equipment.status}
+                  </Badge>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Next: {equipment.nextCalibration}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Support */}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-200 mt-auto">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <HelpCircle className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-900">Need Help?</span>
+            </div>
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs text-gray-600 hover:text-gray-900"
+                onClick={() => console.log('Contact Support')}
+              >
+                <MessageSquare className="w-3 h-3 mr-2" />
+                Contact Support
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs text-gray-600 hover:text-gray-900"
+                onClick={() => console.log('Documentation')}
+              >
+                <FileText className="w-3 h-3 mr-2" />
+                Documentation
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

@@ -1,261 +1,181 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { 
+  Search,
+  Filter,
+  Save,
+  Download,
+  MapPin,
+  Calendar,
+  Tag,
+  Users,
+  BarChart3,
+  FileText,
+  Settings,
+  Activity,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  Plus
+} from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { apiService } from '@/lib/api-service'
 
 interface SearchResult {
   id: string
-  type: 'equipment' | 'calibration' | 'maintenance' | 'user' | 'document'
+  type: 'equipment' | 'calibration' | 'maintenance' | 'user' | 'report' | 'document'
   title: string
   description: string
-  metadata: Record<string, any>
-  relevance: number
-  lastModified: string
-  url: string
-}
-
-interface SearchFilter {
-  type: string[]
-  dateRange: { start: string; end: string }
-  status: string[]
-  location: string[]
-  assignedTo: string[]
+  status: string
+  location?: string
+  date?: string
   tags: string[]
+  relevance: number
+  metadata: Record<string, any>
 }
 
 interface SavedSearch {
   id: string
   name: string
   query: string
-  filters: SearchFilter
+  filters: Record<string, any>
   createdAt: string
   lastUsed: string
 }
 
-export default function AdvancedSearchPage() {
-  const router = useRouter()
+export default function SearchPage() {
+  const { data: session } = useSession()
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<SearchFilter>({
-    type: [],
-    dateRange: { start: '', end: '' },
-    status: [],
-    location: [],
-    assignedTo: [],
-    tags: []
-  })
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({})
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({})
+  const [locationFilter, setLocationFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
-  const [showFilters, setShowFilters] = useState(false)
-  const [activeTab, setActiveTab] = useState('all')
+
+  // Search results
+  const { data: searchResults, isLoading: searchLoading } = useQuery({
+    queryKey: ['search', searchQuery, activeFilters],
+    queryFn: async () => {
+      const response = await apiService.search.globalSearch({
+        query: searchQuery,
+        filters: activeFilters,
+        types: selectedTypes,
+        dateRange,
+        location: locationFilter,
+        status: statusFilter
+      })
+      return response as SearchResult[]
+    },
+    enabled: !!session && (searchQuery.length > 0 || Object.keys(activeFilters).length > 0),
+    debounceTime: 300
+  })
+
+  // Fetch saved searches
+  const { data: savedSearchesData } = useQuery({
+    queryKey: ['saved-searches'],
+    queryFn: async () => {
+      const response = await apiService.search.getSavedSearches()
+      return response as SavedSearch[]
+    },
+    enabled: !!session
+  })
 
   useEffect(() => {
-    // Load saved searches
-    const loadSavedSearches = async () => {
-      try {
-        const response = await fetch('/api/search/saved', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          setSavedSearches(data.data || [])
-        }
-      } catch (err) {
-        console.error('Error loading saved searches:', err)
-        // Fallback to mock data
-        setSavedSearches([
-          {
-            id: 'search-001',
-            name: 'Overdue Calibrations',
-            query: 'calibration status:overdue',
-            filters: {
-              type: ['calibration'],
-              dateRange: { start: '', end: '' },
-              status: ['overdue'],
-              location: [],
-              assignedTo: [],
-              tags: []
-            },
-            createdAt: '2024-01-15T10:30:00Z',
-            lastUsed: '2024-01-20T14:15:00Z'
-          },
-          {
-            id: 'search-002',
-            name: 'High Priority Equipment',
-            query: 'equipment priority:high',
-            filters: {
-              type: ['equipment'],
-              dateRange: { start: '', end: '' },
-              status: [],
-              location: [],
-              assignedTo: [],
-              tags: ['high-priority']
-            },
-            createdAt: '2024-01-10T09:15:00Z',
-            lastUsed: '2024-01-18T11:20:00Z'
-          }
-        ])
-      }
+    if (savedSearchesData) {
+      setSavedSearches(savedSearchesData)
     }
-
-    loadSavedSearches()
-  }, [])
-
-  const performSearch = async (query: string, searchFilters: SearchFilter) => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch('/api/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          query,
-          filters: searchFilters,
-          tab: activeTab
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to perform search')
-      }
-
-      const data = await response.json()
-      setSearchResults(data.data || [])
-    } catch (err) {
-      console.error('Error performing search:', err)
-      setError(err instanceof Error ? err.message : 'Failed to perform search')
-      // Fallback to mock data
-      setSearchResults([
-        {
-          id: 'result-001',
-          type: 'equipment',
-          title: 'Analytical Balance AB-2000',
-          description: 'High-precision analytical balance located in Lab A. Last calibrated on 2024-01-15.',
-          metadata: {
-            status: 'ACTIVE',
-            location: 'Lab A - Bench 1',
-            lastCalibration: '2024-01-15',
-            nextCalibration: '2024-04-15',
-            assignedTo: 'Dr. Sarah Johnson'
-          },
-          relevance: 0.95,
-          lastModified: '2024-01-20T14:15:00Z',
-          url: '/dashboard/equipment/equipment-001'
-        },
-        {
-          id: 'result-002',
-          type: 'calibration',
-          title: 'Calibration Record #CAL-2024-001',
-          description: 'Routine calibration performed on Analytical Balance AB-2000. All parameters within acceptable limits.',
-          metadata: {
-            status: 'COMPLETED',
-            performedBy: 'Dr. Sarah Johnson',
-            performedDate: '2024-01-15',
-            complianceScore: 95
-          },
-          relevance: 0.88,
-          lastModified: '2024-01-15T10:30:00Z',
-          url: '/dashboard/calibrations/cal-2024-001'
-        },
-        {
-          id: 'result-003',
-          type: 'maintenance',
-          title: 'Preventive Maintenance PM-2024-001',
-          description: 'Quarterly preventive maintenance on Analytical Balance AB-2000. Equipment operating normally.',
-          metadata: {
-            status: 'COMPLETED',
-            performedBy: 'Mike Johnson',
-            performedDate: '2024-01-10',
-            type: 'PREVENTIVE'
-          },
-          relevance: 0.82,
-          lastModified: '2024-01-10T14:20:00Z',
-          url: '/dashboard/maintenance/pm-2024-001'
-        }
-      ])
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [savedSearchesData])
 
   const handleSearch = () => {
-    if (searchQuery.trim()) {
-      performSearch(searchQuery, filters)
+    const filters: Record<string, any> = {}
+    
+    if (selectedTypes.length > 0) {
+      filters.type = selectedTypes
     }
+    if (dateRange.start || dateRange.end) {
+      filters.dateRange = dateRange
+    }
+    if (locationFilter) {
+      filters.location = locationFilter
+    }
+    if (statusFilter) {
+      filters.status = statusFilter
+    }
+
+    setActiveFilters(filters)
   }
 
-  const handleSaveSearch = async () => {
+  const clearFilters = () => {
+    setActiveFilters({})
+    setSelectedTypes([])
+    setDateRange({})
+    setLocationFilter('')
+    setStatusFilter('')
+  }
+
+  const saveSearch = () => {
     const searchName = prompt('Enter a name for this search:')
-    if (!searchName) return
-
-    try {
-      const response = await fetch('/api/search/saved', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          name: searchName,
-          query: searchQuery,
-          filters
-        })
-      })
-
-      if (response.ok) {
-        alert('Search saved successfully!')
-        // Reload saved searches
-        const updatedResponse = await fetch('/api/search/saved', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        if (updatedResponse.ok) {
-          const data = await updatedResponse.json()
-          setSavedSearches(data.data || [])
-        }
+    if (searchName) {
+      const newSavedSearch: SavedSearch = {
+        id: Date.now().toString(),
+        name: searchName,
+        query: searchQuery,
+        filters: activeFilters,
+        createdAt: new Date().toISOString(),
+        lastUsed: new Date().toISOString()
       }
-    } catch (err) {
-      console.error('Error saving search:', err)
-      alert('Search saved successfully! (Mock implementation)')
+      setSavedSearches([...savedSearches, newSavedSearch])
     }
   }
 
-  const handleLoadSearch = (savedSearch: SavedSearch) => {
+  const loadSavedSearch = (savedSearch: SavedSearch) => {
     setSearchQuery(savedSearch.query)
-    setFilters(savedSearch.filters)
-    performSearch(savedSearch.query, savedSearch.filters)
+    setActiveFilters(savedSearch.filters)
+    // Update other filter states based on saved filters
   }
 
-  const getTypeIcon = (type: string) => {
+  const getResultIcon = (type: string) => {
     switch (type) {
-      case 'equipment': return '🔬'
-      case 'calibration': return '⚖️'
-      case 'maintenance': return '🔧'
-      case 'user': return '👤'
-      case 'document': return '📄'
-      default: return '📋'
+      case 'equipment':
+        return <Settings className="h-4 w-4" />
+      case 'calibration':
+        return <Calendar className="h-4 w-4" />
+      case 'maintenance':
+        return <Activity className="h-4 w-4" />
+      case 'user':
+        return <Users className="h-4 w-4" />
+      case 'report':
+        return <BarChart3 className="h-4 w-4" />
+      case 'document':
+        return <FileText className="h-4 w-4" />
+      default:
+        return <Search className="h-4 w-4" />
     }
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'equipment': return 'bg-blue-100 text-blue-800'
-      case 'calibration': return 'bg-green-100 text-green-800'
-      case 'maintenance': return 'bg-orange-100 text-orange-800'
-      case 'user': return 'bg-purple-100 text-purple-800'
-      case 'document': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'completed':
+      case 'compliant':
+        return 'bg-green-100 text-green-800'
+      case 'pending':
+      case 'scheduled':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'overdue':
+      case 'failed':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -263,250 +183,312 @@ export default function AdvancedSearchPage() {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     })
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Advanced Search</h1>
-              <p className="text-gray-600 mt-2">Search across all equipment, calibrations, maintenance, and documents</p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={handleSaveSearch}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                Save Search
-              </Button>
-              <Button
-                onClick={() => setShowFilters(!showFilters)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                {showFilters ? 'Hide' : 'Show'} Filters
-              </Button>
-            </div>
-          </div>
-        </div>
+  const resultTypes = [
+    { id: 'equipment', label: 'Equipment', icon: Settings },
+    { id: 'calibration', label: 'Calibrations', icon: Calendar },
+    { id: 'maintenance', label: 'Maintenance', icon: Activity },
+    { id: 'user', label: 'Users', icon: Users },
+    { id: 'report', label: 'Reports', icon: BarChart3 },
+    { id: 'document', label: 'Documents', icon: FileText }
+  ]
 
-        {/* Search Interface */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Global Search</h1>
+          <p className="text-muted-foreground">
+            Search across all equipment, calibrations, maintenance, and documents
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export Results
+          </Button>
+          <Button size="sm">
+            <Save className="h-4 w-4 mr-2" />
+            Save Search
+          </Button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search for equipment, calibrations, maintenance, users, or documents..."
+                placeholder="Search equipment, calibrations, maintenance, users, reports, documents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full"
               />
             </div>
-            <Button
-              onClick={handleSearch}
-              disabled={loading}
-              className="flex items-center gap-2"
+            <Button onClick={handleSearch}>
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             >
-              {loading ? 'Searching...' : 'Search'}
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
             </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Search Tips */}
-          <div className="text-sm text-gray-600">
-            <p className="mb-2"><strong>Search Tips:</strong></p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Use quotes for exact phrases: <code>"analytical balance"</code></li>
-              <li>Use boolean operators: <code>calibration AND overdue</code></li>
-              <li>Filter by type: <code>type:equipment status:active</code></li>
-              <li>Search by date: <code>created:2024-01-01..2024-01-31</code></li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Filters */}
-        {showFilters && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced Filters</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                <div className="space-y-2">
-                  {['equipment', 'calibration', 'maintenance', 'user', 'document'].map((type) => (
-                    <label key={type} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.type.includes(type)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFilters({ ...filters, type: [...filters.type, type] })
-                          } else {
-                            setFilters({ ...filters, type: filters.type.filter(t => t !== type) })
-                          }
-                        }}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">{type}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-                <div className="space-y-2">
-                  <Input
-                    type="date"
-                    value={filters.dateRange.start}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      dateRange: { ...filters.dateRange, start: e.target.value }
-                    })}
-                    placeholder="Start date"
-                  />
-                  <Input
-                    type="date"
-                    value={filters.dateRange.end}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      dateRange: { ...filters.dateRange, end: e.target.value }
-                    })}
-                    placeholder="End date"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <div className="space-y-2">
-                  {['active', 'inactive', 'maintenance', 'overdue', 'completed', 'pending'].map((status) => (
-                    <label key={status} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.status.includes(status)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFilters({ ...filters, status: [...filters.status, status] })
-                          } else {
-                            setFilters({ ...filters, status: filters.status.filter(s => s !== status) })
-                          }
-                        }}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">{status}</span>
-                    </label>
-                  ))}
-                </div>
+      {/* Advanced Filters */}
+      {showAdvancedFilters && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Advanced Filters</CardTitle>
+            <CardDescription>
+              Refine your search with specific criteria
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Result Types */}
+            <div>
+              <h3 className="font-medium mb-3">Result Types</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {resultTypes.map((type) => (
+                  <Button
+                    key={type.id}
+                    variant={selectedTypes.includes(type.id) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      if (selectedTypes.includes(type.id)) {
+                        setSelectedTypes(selectedTypes.filter(t => t !== type.id))
+                      } else {
+                        setSelectedTypes([...selectedTypes, type.id])
+                      }
+                    }}
+                    className="justify-start"
+                  >
+                    <type.icon className="h-4 w-4 mr-2" />
+                    {type.label}
+                  </Button>
+                ))}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Saved Searches */}
-        {savedSearches.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Saved Searches</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {savedSearches.map((savedSearch) => (
-                <div
-                  key={savedSearch.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 cursor-pointer"
-                  onClick={() => handleLoadSearch(savedSearch)}
+            {/* Date Range */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Date From</label>
+                <Input
+                  type="date"
+                  value={dateRange.start || ''}
+                  onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Date To</label>
+                <Input
+                  type="date"
+                  value={dateRange.end || ''}
+                  onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Location and Status */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Location</label>
+                <Input
+                  placeholder="Filter by location"
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md mt-1"
                 >
-                  <h4 className="font-medium text-gray-900 mb-1">{savedSearch.name}</h4>
-                  <p className="text-sm text-gray-600 mb-2">{savedSearch.query}</p>
-                  <p className="text-xs text-gray-500">
-                    Last used: {formatDate(savedSearch.lastUsed)}
-                  </p>
-                </div>
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button onClick={handleSearch}>
+                Apply Filters
+              </Button>
+              <Button variant="outline" onClick={clearFilters}>
+                Clear All
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Saved Searches */}
+      {savedSearches.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Saved Searches</CardTitle>
+            <CardDescription>
+              Quick access to your frequently used searches
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {savedSearches.map((savedSearch) => (
+                <Button
+                  key={savedSearch.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadSavedSearch(savedSearch)}
+                >
+                  {savedSearch.name}
+                </Button>
               ))}
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Search Results */}
-        {searchResults.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Search Results ({searchResults.length})
-              </h3>
+      {/* Search Results */}
+      {searchQuery && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Search Results</CardTitle>
+                <CardDescription>
+                  {searchLoading ? 'Searching...' : `${searchResults?.length || 0} results found`}
+                </CardDescription>
+              </div>
+              {searchResults && searchResults.length > 0 && (
+                <Button variant="outline" size="sm" onClick={saveSearch}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Search
+                </Button>
+              )}
             </div>
-            
-            <div className="divide-y divide-gray-200">
-              {searchResults.map((result) => (
-                <div key={result.id} className="p-6 hover:bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">{getTypeIcon(result.type)}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(result.type)}`}>
-                          {result.type}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          Relevance: {Math.round(result.relevance * 100)}%
-                        </span>
-                      </div>
-                      
-                      <h4 className="font-medium text-gray-900 mb-2">{result.title}</h4>
-                      <p className="text-sm text-gray-600 mb-3">{result.description}</p>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                        {Object.entries(result.metadata).map(([key, value]) => (
-                          <div key={key}>
-                            <p className="text-xs text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
-                            <p className="text-sm font-medium">{String(value)}</p>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      <p className="text-xs text-gray-500">
-                        Last modified: {formatDate(result.lastModified)}
-                      </p>
+          </CardHeader>
+          <CardContent>
+            {searchLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : searchResults && searchResults.length > 0 ? (
+              <div className="space-y-4">
+                {searchResults.map((result) => (
+                  <div key={result.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="p-2 bg-muted rounded-lg">
+                      {getResultIcon(result.type)}
                     </div>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(result.url)}
-                    >
-                      View Details
-                    </Button>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{result.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {result.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(result.status)}>
+                            {result.status}
+                          </Badge>
+                          <Badge variant="outline">
+                            {result.type}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                        {result.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {result.location}
+                          </div>
+                        )}
+                        {result.date && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(result.date)}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Tag className="h-3 w-3" />
+                          {result.tags.slice(0, 3).join(', ')}
+                          {result.tags.length > 3 && ` +${result.tags.length - 3} more`}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Results Found</h3>
+                <p className="text-muted-foreground">
+                  Try adjusting your search terms or filters
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* No Results */}
-        {searchQuery && !loading && searchResults.length === 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <div className="text-gray-400 mb-4">
-              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+      {/* Search Tips */}
+      {!searchQuery && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Tips</CardTitle>
+            <CardDescription>
+              Make the most of your search with these tips
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h4 className="font-medium">Quick Searches</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Use quotes for exact phrases: "analytical balance"</li>
+                  <li>• Search by serial number: AB-001</li>
+                  <li>• Filter by location: Lab A</li>
+                  <li>• Search by status: overdue, compliant</li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-medium">Advanced Features</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Use filters to narrow results</li>
+                  <li>• Save frequent searches</li>
+                  <li>• Export results for reporting</li>
+                  <li>• Search across all data types</li>
+                </ul>
+              </div>
             </div>
-            <p className="text-gray-600">No results found for "{searchQuery}"</p>
-            <p className="text-sm text-gray-500 mt-2">Try adjusting your search terms or filters</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">Error: {error}</p>
-          </div>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 } 

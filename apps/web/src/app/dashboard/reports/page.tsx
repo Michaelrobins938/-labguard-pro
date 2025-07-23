@@ -1,466 +1,441 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import {
-  BarChart3,
-  FileText,
-  Download,
+import { useState } from 'react'
+import { 
+  BarChart3, 
+  TrendingUp, 
+  Download, 
   Calendar,
-  TrendingUp,
-  AlertTriangle,
   CheckCircle,
+  AlertTriangle,
   Clock,
-  Filter,
-  Search,
-  Plus,
   Eye,
-  Settings
+  FileText,
+  Brain,
+  Settings,
+  Users,
+  DollarSign
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
-interface ReportStats {
-  totalReports: number
-  complianceRate: number
-  overdueCalibrations: number
-  upcomingCalibrations: number
-  aiChecksThisMonth: number
-  totalEquipment: number
+interface ComplianceData {
+  month: string
+  compliant: number
+  warning: number
+  overdue: number
+  total: number
 }
 
-interface RecentReport {
-  id: string
-  title: string
+interface EquipmentPerformance {
+  name: string
   type: string
-  generatedAt: string
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED'
-  generatedBy: string
-  equipmentCount: number
   complianceScore: number
+  lastCalibration: string
+  nextCalibration: string
+  status: 'compliant' | 'warning' | 'overdue'
 }
 
 export default function ReportsPage() {
-  const [stats, setStats] = useState<ReportStats>({
-    totalReports: 0,
-    complianceRate: 0,
-    overdueCalibrations: 0,
-    upcomingCalibrations: 0,
-    aiChecksThisMonth: 0,
-    totalEquipment: 0
-  })
-  const [recentReports, setRecentReports] = useState<RecentReport[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
+  const [selectedPeriod, setSelectedPeriod] = useState('30')
+  const [selectedReport, setSelectedReport] = useState('compliance')
 
-  // Mock data - replace with API call
-  useEffect(() => {
-    const mockStats: ReportStats = {
-      totalReports: 156,
-      complianceRate: 94.2,
-      overdueCalibrations: 3,
-      upcomingCalibrations: 12,
-      aiChecksThisMonth: 89,
-      totalEquipment: 24
+  const complianceData: ComplianceData[] = [
+    { month: 'Jan', compliant: 85, warning: 10, overdue: 5, total: 100 },
+    { month: 'Feb', compliant: 88, warning: 8, overdue: 4, total: 100 },
+    { month: 'Mar', compliant: 92, warning: 6, overdue: 2, total: 100 },
+    { month: 'Apr', compliant: 89, warning: 9, overdue: 2, total: 100 },
+    { month: 'May', compliant: 94, warning: 4, overdue: 2, total: 100 },
+    { month: 'Jun', compliant: 96, warning: 3, overdue: 1, total: 100 }
+  ]
+
+  const equipmentPerformance: EquipmentPerformance[] = [
+    {
+      name: 'Analytical Balance PB-220',
+      type: 'Balance',
+      complianceScore: 98.5,
+      lastCalibration: '2024-01-15',
+      nextCalibration: '2024-02-15',
+      status: 'compliant'
+    },
+    {
+      name: 'Centrifuge CF-16',
+      type: 'Centrifuge',
+      complianceScore: 85.2,
+      lastCalibration: '2024-01-10',
+      nextCalibration: '2024-02-10',
+      status: 'warning'
+    },
+    {
+      name: 'Incubator IC-200',
+      type: 'Incubator',
+      complianceScore: 72.8,
+      lastCalibration: '2024-01-05',
+      nextCalibration: '2024-02-05',
+      status: 'overdue'
+    },
+    {
+      name: 'pH Meter PH-100',
+      type: 'pH Meter',
+      complianceScore: 95.1,
+      lastCalibration: '2024-01-20',
+      nextCalibration: '2024-02-20',
+      status: 'compliant'
     }
-
-    const mockRecentReports: RecentReport[] = [
-      {
-        id: '1',
-        title: 'Monthly Compliance Report - January 2024',
-        type: 'COMPLIANCE_SUMMARY',
-        generatedAt: '2024-01-31T10:30:00Z',
-        status: 'COMPLETED',
-        generatedBy: 'Dr. Sarah Johnson',
-        equipmentCount: 24,
-        complianceScore: 96.5
-      },
-      {
-        id: '2',
-        title: 'Equipment Performance Analysis',
-        type: 'EQUIPMENT_ANALYSIS',
-        generatedAt: '2024-01-30T14:15:00Z',
-        status: 'COMPLETED',
-        generatedBy: 'Mike Chen',
-        equipmentCount: 18,
-        complianceScore: 92.1
-      },
-      {
-        id: '3',
-        title: 'CAP Audit Preparation Report',
-        type: 'AUDIT_PREPARATION',
-        generatedAt: '2024-01-29T09:45:00Z',
-        status: 'IN_PROGRESS',
-        generatedBy: 'Dr. Sarah Johnson',
-        equipmentCount: 24,
-        complianceScore: 0
-      },
-      {
-        id: '4',
-        title: 'AI Validation Summary - Q4 2023',
-        type: 'AI_VALIDATION',
-        generatedAt: '2024-01-28T16:20:00Z',
-        status: 'COMPLETED',
-        generatedBy: 'System',
-        equipmentCount: 24,
-        complianceScore: 94.8
-      }
-    ]
-
-    setStats(mockStats)
-    setRecentReports(mockRecentReports)
-    setLoading(false)
-  }, [])
+  ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'IN_PROGRESS':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'FAILED':
-        return 'bg-red-100 text-red-800 border-red-200'
+      case 'compliant':
+        return 'text-green-600 bg-green-100'
+      case 'warning':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'overdue':
+        return 'text-red-600 bg-red-100'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'text-gray-600 bg-gray-100'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'COMPLETED':
+      case 'compliant':
         return <CheckCircle className="w-4 h-4" />
-      case 'IN_PROGRESS':
-        return <Clock className="w-4 h-4" />
-      case 'FAILED':
+      case 'warning':
         return <AlertTriangle className="w-4 h-4" />
+      case 'overdue':
+        return <Clock className="w-4 h-4" />
       default:
         return <Clock className="w-4 h-4" />
     }
   }
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'COMPLIANCE_SUMMARY':
-        return <CheckCircle className="w-4 h-4" />
-      case 'EQUIPMENT_ANALYSIS':
-        return <BarChart3 className="w-4 h-4" />
-      case 'AUDIT_PREPARATION':
-        return <FileText className="w-4 h-4" />
-      case 'AI_VALIDATION':
-        return <TrendingUp className="w-4 h-4" />
-      default:
-        return <FileText className="w-4 h-4" />
-    }
-  }
-
-  const filteredReports = recentReports.filter(report => {
-    const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = typeFilter === 'all' || report.type === typeFilter
-    return matchesSearch && matchesType
-  })
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow p-6">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const totalEquipment = equipmentPerformance.length
+  const compliantEquipment = equipmentPerformance.filter(e => e.status === 'compliant').length
+  const warningEquipment = equipmentPerformance.filter(e => e.status === 'warning').length
+  const overdueEquipment = equipmentPerformance.filter(e => e.status === 'overdue').length
+  const averageComplianceScore = equipmentPerformance.reduce((acc, e) => acc + e.complianceScore, 0) / totalEquipment
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-              <p className="text-gray-600 mt-2">
-                Generate compliance reports, analyze performance, and track laboratory metrics
-              </p>
-            </div>
-            <div className="flex space-x-3">
-              <Link
-                href="/dashboard/reports/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Report
-              </Link>
-              <Link
-                href="/dashboard/reports/templates"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Templates
-              </Link>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+          <p className="text-gray-600">Comprehensive compliance dashboards and performance insights</p>
         </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+          <Button>
+            <FileText className="w-4 h-4 mr-2" />
+            Generate Report
+          </Button>
+        </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalReports}</p>
-              </div>
+      {/* Period Selector */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium text-gray-700">Time Period:</label>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              >
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last year</option>
+              </select>
+            </div>
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium text-gray-700">Report Type:</label>
+              <select
+                value={selectedReport}
+                onChange={(e) => setSelectedReport(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              >
+                <option value="compliance">Compliance Report</option>
+                <option value="performance">Performance Report</option>
+                <option value="financial">Financial Report</option>
+                <option value="ai">AI Analysis Report</option>
+              </select>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Equipment</p>
+                <p className="text-2xl font-bold text-gray-900">{totalEquipment}</p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Settings className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Compliant</p>
+                <p className="text-2xl font-bold text-green-600">{compliantEquipment}</p>
+                <p className="text-xs text-gray-500">
+                  {((compliantEquipment / totalEquipment) * 100).toFixed(1)}% of total
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Compliance Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.complianceRate}%</p>
-              </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Upcoming Calibrations</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.upcomingCalibrations}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Overdue Calibrations</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.overdueCalibrations}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link
-                href="/dashboard/reports/compliance"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <CheckCircle className="w-8 h-8 text-green-600 mr-4" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Compliance Report</h3>
-                  <p className="text-sm text-gray-600">Generate compliance summary</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/reports/equipment"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <BarChart3 className="w-8 h-8 text-blue-600 mr-4" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Equipment Analysis</h3>
-                  <p className="text-sm text-gray-600">Performance and maintenance</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/reports/audit"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <FileText className="w-8 h-8 text-purple-600 mr-4" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Audit Preparation</h3>
-                  <p className="text-sm text-gray-600">CAP/CLIA audit readiness</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/dashboard/reports/ai-validation"
-                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <TrendingUp className="w-8 h-8 text-orange-600 mr-4" />
-                <div>
-                  <h3 className="font-medium text-gray-900">AI Validation</h3>
-                  <p className="text-sm text-gray-600">AI check performance</p>
-                </div>
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Reports */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
+        <Card>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Reports</h2>
-              <Link
-                href="/dashboard/reports/history"
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                View All
-              </Link>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search Reports
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search by title..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                <p className="text-sm font-medium text-gray-600">Average Score</p>
+                <p className="text-2xl font-bold text-blue-600">{averageComplianceScore.toFixed(1)}%</p>
+                <p className="text-xs text-gray-500">Compliance score</p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Report Type
-                </label>
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="all">All Types</option>
-                  <option value="COMPLIANCE_SUMMARY">Compliance Summary</option>
-                  <option value="EQUIPMENT_ANALYSIS">Equipment Analysis</option>
-                  <option value="AUDIT_PREPARATION">Audit Preparation</option>
-                  <option value="AI_VALIDATION">AI Validation</option>
-                </select>
-              </div>
-
-              <div className="flex items-end">
-                <button
-                  onClick={() => {
-                    setSearchTerm('')
-                    setTypeFilter('all')
-                  }}
-                  className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
-                  Clear Filters
-                </button>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-blue-600" />
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Reports List */}
-          <div className="divide-y divide-gray-200">
-            {filteredReports.map((report) => (
-              <div key={report.id} className="p-6 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      {getTypeIcon(report.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-gray-900 truncate">
-                        {report.title}
-                      </h3>
-                      <div className="flex items-center space-x-4 mt-1">
-                        <span className="text-sm text-gray-500">
-                          Generated by {report.generatedBy}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {new Date(report.generatedAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {report.equipmentCount} equipment items
-                        </span>
-                        {report.complianceScore > 0 && (
-                          <span className="text-sm text-gray-500">
-                            {report.complianceScore}% compliance
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">AI Validations</p>
+                <p className="text-2xl font-bold text-purple-600">24</p>
+                <p className="text-xs text-gray-500">This month</p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Brain className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-                  <div className="flex items-center space-x-3">
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(report.status)}`}>
-                      {getStatusIcon(report.status)}
-                      <span className="ml-1">{report.status.replace('_', ' ')}</span>
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <Link
-                        href={`/dashboard/reports/${report.id}`}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </Link>
-                      <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </button>
-                    </div>
-                  </div>
+      {/* Compliance Trend Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Compliance Trend</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 flex items-end justify-between space-x-2">
+            {complianceData.map((data, index) => (
+              <div key={index} className="flex-1 flex flex-col items-center">
+                <div className="w-full bg-gray-200 rounded-t" style={{ height: `${(data.compliant / data.total) * 200}px` }}>
+                  <div className="w-full bg-green-500 rounded-t" style={{ height: `${(data.compliant / data.total) * 200}px` }}></div>
                 </div>
+                <div className="w-full bg-gray-200 rounded-t" style={{ height: `${(data.warning / data.total) * 200}px` }}>
+                  <div className="w-full bg-yellow-500 rounded-t" style={{ height: `${(data.warning / data.total) * 200}px` }}></div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-t" style={{ height: `${(data.overdue / data.total) * 200}px` }}>
+                  <div className="w-full bg-red-500 rounded-t" style={{ height: `${(data.overdue / data.total) * 200}px` }}></div>
+                </div>
+                <span className="text-xs text-gray-600 mt-2">{data.month}</span>
               </div>
             ))}
           </div>
-
-          {/* Empty State */}
-          {filteredReports.length === 0 && (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchTerm || typeFilter !== 'all'
-                  ? 'No reports match your filters'
-                  : 'No reports generated yet'
-                }
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {searchTerm || typeFilter !== 'all'
-                  ? 'Try adjusting your search criteria or filters.'
-                  : 'Generate your first report to get started.'
-                }
-              </p>
-              <Link
-                href="/dashboard/reports/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Generate Report
-              </Link>
+          <div className="flex items-center justify-center space-x-6 mt-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded"></div>
+              <span className="text-xs text-gray-600">Compliant</span>
             </div>
-          )}
-        </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+              <span className="text-xs text-gray-600">Warning</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-red-500 rounded"></div>
+              <span className="text-xs text-gray-600">Overdue</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Equipment Performance Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Equipment Performance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Equipment</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Type</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Compliance Score</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Last Calibration</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Next Calibration</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipmentPerformance.map((equipment, index) => (
+                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-gray-900">{equipment.name}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-gray-600">{equipment.type}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full"
+                            style={{ width: `${equipment.complianceScore}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {equipment.complianceScore}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        {getStatusIcon(equipment.status)}
+                        <Badge className={getStatusColor(equipment.status)}>
+                          {equipment.status}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-gray-900">{equipment.lastCalibration}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="text-sm text-gray-900">{equipment.nextCalibration}</div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => console.log('View', equipment.name)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => console.log('Report', equipment.name)}
+                        >
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Reports */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent AI Validations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Brain className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Balance Calibration</p>
+                    <p className="text-xs text-gray-500">AI validated - 98.5% accuracy</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">2 hours ago</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Brain className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">pH Meter Analysis</p>
+                    <p className="text-xs text-gray-500">AI validated - 95.2% accuracy</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">1 day ago</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Brain className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Centrifuge Check</p>
+                    <p className="text-xs text-gray-500">AI validated - 87.3% accuracy</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500">2 days ago</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Calibrations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-5 h-5 text-yellow-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Centrifuge CF-16</p>
+                    <p className="text-xs text-gray-500">Due in 3 days</p>
+                  </div>
+                </div>
+                <Badge className="text-yellow-600 bg-yellow-100">Warning</Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-5 h-5 text-gray-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">pH Meter PH-100</p>
+                    <p className="text-xs text-gray-500">Due in 7 days</p>
+                  </div>
+                </div>
+                <Badge className="text-green-600 bg-green-100">Scheduled</Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-5 h-5 text-red-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Incubator IC-200</p>
+                    <p className="text-xs text-gray-500">Overdue by 5 days</p>
+                  </div>
+                </div>
+                <Badge className="text-red-600 bg-red-100">Overdue</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

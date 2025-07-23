@@ -1,291 +1,484 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import {
+import { useSession } from 'next-auth/react'
+import { useEffect, useState } from 'react'
+import { 
+  Activity, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock, 
+  Microscope, 
   TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  BarChart3,
   Calendar,
+  FileText,
   Users,
-  Settings,
-  Bell,
-  Upload,
-  Database,
-  Key,
-  Zap,
-  Search,
-  Shield
+  DollarSign,
+  RefreshCw
 } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { apiService, apiUtils } from '@/lib/api'
 
 interface DashboardStats {
   totalEquipment: number
+  compliantEquipment: number
   overdueCalibrations: number
-  completedCalibrations: number
-  upcomingCalibrations: number
-  complianceScore: number
-  teamMembers: number
-  activeAssignments: number
-  pendingInvitations: number
-  unreadNotifications: number
+  dueSoonCalibrations: number
+  completedThisMonth: number
+  savingsThisMonth: number
+  complianceRate: number
+  avgCalibrationTime: number
+  totalUsers: number
+  activeUsers: number
+  totalReports: number
+  aiUsageCount: number
+}
+
+interface RecentActivity {
+  id: string
+  type: 'calibration_completed' | 'calibration_due' | 'equipment_added' | 'alert' | 'report_generated' | 'user_joined'
+  title: string
+  description: string
+  timestamp: string
+  equipmentName?: string
+  status: 'success' | 'warning' | 'error' | 'info'
+  userId?: string
+  userName?: string
+}
+
+interface EquipmentStatus {
+  id: string
+  name: string
+  status: 'active' | 'maintenance' | 'inactive' | 'retired'
+  complianceStatus: 'compliant' | 'due_soon' | 'overdue'
+  lastCalibration: string
+  nextCalibration: string
+  location: string
+}
+
+interface ComplianceOverview {
+  overallRate: number
+  byCategory: {
+    analytical_balances: number
+    centrifuges: number
+    spectrophotometers: number
+    incubators: number
+    autoclaves: number
+  }
+  trends: {
+    date: string
+    rate: number
+  }[]
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalEquipment: 0,
-    overdueCalibrations: 0,
-    completedCalibrations: 0,
-    upcomingCalibrations: 0,
-    complianceScore: 0,
-    teamMembers: 0,
-    activeAssignments: 0,
-    pendingInvitations: 0,
-    unreadNotifications: 0
+  const { data: session } = useSession()
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+
+  // Fetch dashboard stats
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const response = await apiService.dashboard.getStats()
+      return apiUtils.formatResponse(response) as DashboardStats
+    },
+    refetchInterval: 300000, // Refetch every 5 minutes
   })
 
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // Mock data for beta testing
-    setTimeout(() => {
-      setStats({
-        totalEquipment: 24,
-        overdueCalibrations: 3,
-        completedCalibrations: 156,
-        upcomingCalibrations: 8,
-        complianceScore: 94,
-        teamMembers: 6,
-        activeAssignments: 12,
-        pendingInvitations: 2,
-        unreadNotifications: 5
-      })
-      setLoading(false)
-    }, 1000)
-  }, [])
-
-  const recentActivities = [
-    {
-      id: 1,
-      type: 'calibration',
-      title: 'Centrifuge calibration completed',
-      description: 'Equipment ID: CF-001 passed all tests',
-      time: '2 hours ago',
-      status: 'success'
+  // Fetch recent activity
+  const { data: recentActivity, isLoading: activityLoading, refetch: refetchActivity } = useQuery({
+    queryKey: ['dashboard-activity'],
+    queryFn: async () => {
+      const response = await apiService.dashboard.getRecentActivity(10)
+      return apiUtils.formatResponse(response) as RecentActivity[]
     },
-    {
-      id: 2,
-      type: 'alert',
-      title: 'Overdue calibration detected',
-      description: 'Microscope MS-003 is 5 days overdue',
-      time: '4 hours ago',
-      status: 'warning'
+    refetchInterval: 60000, // Refetch every minute
+  })
+
+  // Fetch compliance overview
+  const { data: complianceOverview, isLoading: complianceLoading, refetch: refetchCompliance } = useQuery({
+    queryKey: ['dashboard-compliance'],
+    queryFn: async () => {
+      const response = await apiService.dashboard.getComplianceOverview()
+      return apiUtils.formatResponse(response) as ComplianceOverview
     },
-    {
-      id: 3,
-      type: 'report',
-      title: 'Monthly compliance report generated',
-      description: 'Compliance score: 94%',
-      time: '1 day ago',
-      status: 'info'
+    refetchInterval: 300000, // Refetch every 5 minutes
+  })
+
+  // Fetch equipment status
+  const { data: equipmentStatus, isLoading: equipmentLoading, refetch: refetchEquipment } = useQuery({
+    queryKey: ['dashboard-equipment'],
+    queryFn: async () => {
+      const response = await apiService.dashboard.getEquipmentStatus()
+      return apiUtils.formatResponse(response) as EquipmentStatus[]
+    },
+    refetchInterval: 300000, // Refetch every 5 minutes
+  })
+
+  const handleRefresh = async () => {
+    setLastRefresh(new Date())
+    await Promise.all([
+      refetchStats(),
+      refetchActivity(),
+      refetchCompliance(),
+      refetchEquipment()
+    ])
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-100 text-green-800'
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'error':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-blue-100 text-blue-800'
     }
-  ]
+  }
 
-  if (loading) {
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'calibration_completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'calibration_due':
+        return <Clock className="h-4 w-4 text-yellow-600" />
+      case 'equipment_added':
+        return <Microscope className="h-4 w-4 text-blue-600" />
+      case 'alert':
+        return <AlertTriangle className="h-4 w-4 text-red-600" />
+      case 'report_generated':
+        return <FileText className="h-4 w-4 text-purple-600" />
+      case 'user_joined':
+        return <Users className="h-4 w-4 text-indigo-600" />
+      default:
+        return <Activity className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const getComplianceColor = (rate: number) => {
+    if (rate >= 90) return 'text-green-600'
+    if (rate >= 75) return 'text-yellow-600'
+    return 'text-red-600'
+  }
+
+  const getComplianceStatus = (rate: number) => {
+    if (rate >= 90) return 'Excellent'
+    if (rate >= 75) return 'Good'
+    if (rate >= 60) return 'Fair'
+    return 'Poor'
+  }
+
+  if (statsLoading || activityLoading || complianceLoading || equipmentLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <Button variant="outline" disabled>
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+                <div className="h-4 w-4 bg-gray-200 rounded animate-pulse" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 bg-gray-200 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back, Beta User!
-        </h1>
-        <p className="text-gray-600">
-          Here's what's happening with your laboratory compliance today.
-        </p>
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">
+            Welcome back, {session?.user?.name}. Here's what's happening in your laboratory.
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleRefresh}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Settings className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Equipment</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalEquipment}</p>
-            </div>
-          </div>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Equipment</CardTitle>
+            <Microscope className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalEquipment || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats?.compliantEquipment || 0} compliant
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Compliance Rate</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${getComplianceColor(stats?.complianceRate || 0)}`}>
+              {stats?.complianceRate || 0}%
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Overdue</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.overdueCalibrations}</p>
-            </div>
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground">
+              {getComplianceStatus(stats?.complianceRate || 0)}
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Calibrations Due</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats?.dueSoonCalibrations || 0}
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.completedCalibrations}</p>
-            </div>
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground">
+              {stats?.overdueCalibrations || 0} overdue
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Users className="w-6 h-6 text-purple-600" />
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Savings</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              ${stats?.savingsThisMonth?.toLocaleString() || 0}
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Team</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.teamMembers}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Assignments</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeAssignments}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Bell className="w-6 h-6 text-indigo-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Notifications</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.unreadNotifications}</p>
-            </div>
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground">
+              {stats?.completedThisMonth || 0} calibrations completed
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Compliance Score */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Compliance Score</h2>
-          <BarChart3 className="w-5 h-5 text-gray-400" />
-        </div>
-        <div className="flex items-center">
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Current Score</span>
-              <span className="text-sm font-medium text-gray-900">{stats.complianceScore}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${stats.complianceScore}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-          <Calendar className="w-5 h-5 text-gray-400" />
-        </div>
-        <div className="space-y-4">
-          {recentActivities.map((activity) => (
-            <div key={activity.id} className="flex items-start space-x-3">
-              <div className={`p-2 rounded-lg ${
-                activity.status === 'success' ? 'bg-green-100' :
-                activity.status === 'warning' ? 'bg-yellow-100' :
-                'bg-blue-100'
-              }`}>
-                {activity.type === 'calibration' && <CheckCircle className="w-4 h-4 text-green-600" />}
-                {activity.type === 'alert' && <AlertTriangle className="w-4 h-4 text-yellow-600" />}
-                {activity.type === 'report' && <BarChart3 className="w-4 h-4 text-blue-600" />}
+      {/* Compliance Overview */}
+      {complianceOverview && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Compliance Overview</CardTitle>
+              <CardDescription>
+                Overall compliance rate: {complianceOverview.overallRate}%
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Overall Progress</span>
+                    <span className="text-sm text-muted-foreground">
+                      {complianceOverview.overallRate}%
+                    </span>
+                  </div>
+                  <Progress value={complianceOverview.overallRate} className="w-full" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(complianceOverview.byCategory).map(([category, rate]) => (
+                    <div key={category} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium capitalize">
+                          {category.replace('_', ' ')}
+                        </span>
+                        <span className="text-sm text-muted-foreground">{rate}%</span>
+                      </div>
+                      <Progress value={rate} className="w-full" />
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                <p className="text-sm text-gray-600">{activity.description}</p>
-                <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-              </div>
-            </div>
-          ))}
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-3">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common tasks and shortcuts</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Link href="/dashboard/calibrations/new">
+                <Button className="w-full justify-start" variant="outline">
+                  <Clock className="mr-2 h-4 w-4" />
+                  Schedule Calibration
+                </Button>
+              </Link>
+              
+              <Link href="/dashboard/equipment/new">
+                <Button className="w-full justify-start" variant="outline">
+                  <Microscope className="mr-2 h-4 w-4" />
+                  Add Equipment
+                </Button>
+              </Link>
+              
+              <Link href="/dashboard/reports/generate">
+                <Button className="w-full justify-start" variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Report
+                </Button>
+              </Link>
+              
+              <Link href="/dashboard/team/invite">
+                <Button className="w-full justify-start" variant="outline">
+                  <Users className="mr-2 h-4 w-4" />
+                  Invite Team Member
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {/* Equipment Status */}
+      {equipmentStatus && equipmentStatus.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Equipment Status</CardTitle>
+              <CardDescription>
+                Recent equipment updates and status changes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {equipmentStatus.slice(0, 5).map((equipment) => (
+                  <div key={equipment.id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <Microscope className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{equipment.name}</p>
+                        <p className="text-sm text-muted-foreground">{equipment.location}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={equipment.complianceStatus === 'compliant' ? 'default' : 'destructive'}>
+                        {equipment.complianceStatus.replace('_', ' ')}
+                      </Badge>
+                      <Badge variant="outline">
+                        {equipment.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-3">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest updates and notifications</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivity?.slice(0, 5).map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{activity.title}</p>
+                      <p className="text-sm text-muted-foreground">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(activity.timestamp).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Badge className={getStatusColor(activity.status)}>
+                      {activity.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Additional Stats */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats?.activeUsers || 0} active today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reports Generated</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalReports || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              This month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">AI Validations</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.aiUsageCount || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              This month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Calibration Time</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.avgCalibrationTime || 0}m</div>
+            <p className="text-xs text-muted-foreground">
+              Per calibration
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/dashboard/equipment/new" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Settings className="w-5 h-5 text-blue-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Add Equipment</span>
-          </Link>
-          <Link href="/dashboard/calibrations/new" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Calendar className="w-5 h-5 text-green-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Schedule Calibration</span>
-          </Link>
-          <Link href="/dashboard/team/invite" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Users className="w-5 h-5 text-purple-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Invite Team Member</span>
-          </Link>
-          <Link href="/dashboard/notifications" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Bell className="w-5 h-5 text-indigo-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">View Notifications</span>
-          </Link>
-          <Link href="/dashboard/bulk-operations" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Upload className="w-5 h-5 text-orange-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Bulk Operations</span>
-          </Link>
-          <Link href="/dashboard/data-management" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Database className="w-5 h-5 text-teal-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Data Management</span>
-          </Link>
-          <Link href="/dashboard/api" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Key className="w-5 h-5 text-yellow-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">API Management</span>
-          </Link>
-          <Link href="/dashboard/automation" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Zap className="w-5 h-5 text-purple-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Automation</span>
-          </Link>
-          <Link href="/dashboard/search" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Search className="w-5 h-5 text-gray-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Global Search</span>
-          </Link>
-          <Link href="/dashboard/analytics/enterprise" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <BarChart3 className="w-5 h-5 text-red-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">Enterprise Analytics</span>
-          </Link>
-          <Link href="/admin/system" className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Shield className="w-5 h-5 text-red-600 mr-3" />
-            <span className="text-sm font-medium text-gray-900">System Admin</span>
-          </Link>
-        </div>
+      {/* Last Updated */}
+      <div className="text-center text-sm text-muted-foreground">
+        Last updated: {lastRefresh.toLocaleTimeString()}
       </div>
     </div>
   )

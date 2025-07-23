@@ -14,8 +14,11 @@ import complianceRoutes from './routes/compliance.routes'
 import reportsRoutes from './routes/reports.routes'
 import billingRoutes from './routes/billing.routes'
 import notificationRoutes from './routes/notifications.routes'
+import onboardingRoutes from './routes/onboarding.routes'
 import teamRoutes from './routes/team.routes'
 import equipmentDetailRoutes from './routes/equipment-detail.routes'
+import biomniRoutes from './routes/biomni.routes'
+import advancedFeaturesRoutes from './routes/advanced-features.routes'
 
 const app = express()
 
@@ -58,8 +61,11 @@ app.use('/api/compliance', authMiddleware, complianceRoutes)
 app.use('/api/reports', authMiddleware, reportsRoutes)
 app.use('/api/billing', authMiddleware, billingRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/onboarding', onboardingRoutes)
 app.use('/api/team', teamRoutes)
 app.use('/api/equipment-detail', equipmentDetailRoutes)
+app.use('/api/biomni', authMiddleware, biomniRoutes)
+app.use('/api/advanced-features', authMiddleware, advancedFeaturesRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -4,12 +4,17 @@ import { ReactNode, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
+import { BiomniAssistant } from '@/components/ai/BiomniAssistant'
 
 interface DashboardLayoutProps {
   children: ReactNode
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -45,13 +50,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader />
-      <div className="flex h-screen">
-        <DashboardSidebar />
-        <main className="flex-1 overflow-auto p-6">
-          {children}
+      <DashboardSidebar />
+      <div className="lg:pl-72">
+        <DashboardHeader />
+        <main className="py-10">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            {children}
+          </div>
         </main>
       </div>
+      <BiomniAssistant />
     </div>
   )
 } 
