@@ -24,8 +24,7 @@ import {
   X,
   Save,
   Play,
-  Pause,
-  Stop
+  Pause
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/lib/api-service'
@@ -105,16 +104,15 @@ export default function BulkOperationsPage() {
     }
   })
 
-  // Pause/Resume operation mutation
-  const toggleOperationMutation = useMutation({
-    mutationFn: ({ operationId, action }: { operationId: string; action: 'pause' | 'resume' }) =>
-      apiService.bulkOperations.toggleOperation(operationId, action),
+  // Cancel operation mutation
+  const cancelOperationMutation = useMutation({
+    mutationFn: (operationId: string) => apiService.bulkOperations.cancelBulkOperation(operationId),
     onSuccess: () => {
-      toast.success('Operation status updated')
+      toast.success('Operation cancelled successfully')
       queryClient.invalidateQueries({ queryKey: ['bulk-operations'] })
     },
     onError: (error: any) => {
-      toast.error('Failed to update operation status')
+      toast.error('Failed to cancel operation')
     }
   })
 
@@ -316,24 +314,9 @@ export default function BulkOperationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toggleOperationMutation.mutate({
-                          operationId: operation.id,
-                          action: 'pause'
-                        })}
+                        onClick={() => cancelOperationMutation.mutate(operation.id)}
                       >
-                        <Pause className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {operation.status === 'paused' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleOperationMutation.mutate({
-                          operationId: operation.id,
-                          action: 'resume'
-                        })}
-                      >
-                        <Play className="h-4 w-4" />
+                        <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>

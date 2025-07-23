@@ -7,9 +7,7 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_your-stripe-publishable-key',
   },
-  experimental: {
-    appDir: true,
-  },
+
   trailingSlash: false,
   // Removed redirect to allow landing page at root
 }

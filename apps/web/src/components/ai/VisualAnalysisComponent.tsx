@@ -134,7 +134,7 @@ export function VisualAnalysisComponent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.accessToken}`
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
         },
         body: JSON.stringify({
           imageUrl: finalImageUrl,

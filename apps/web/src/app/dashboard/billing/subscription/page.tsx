@@ -200,7 +200,7 @@ export default function SubscriptionPage() {
 
   // Cancel subscription mutation
   const cancelMutation = useMutation({
-    mutationFn: () => apiService.billing.cancelSubscription(),
+    mutationFn: () => apiService.billing.cancelSubscription(subscription?.id || ''),
     onSuccess: () => {
       toast.success('Subscription will be canceled at the end of the current period')
       setCancelDialogOpen(false)

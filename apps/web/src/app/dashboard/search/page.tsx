@@ -75,8 +75,7 @@ export default function SearchPage() {
       })
       return response as SearchResult[]
     },
-    enabled: !!session && (searchQuery.length > 0 || Object.keys(activeFilters).length > 0),
-    debounceTime: 300
+    enabled: !!session && (searchQuery.length > 0 || Object.keys(activeFilters).length > 0)
   })
 
   // Fetch saved searches

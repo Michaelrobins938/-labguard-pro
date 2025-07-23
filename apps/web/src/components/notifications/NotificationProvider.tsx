@@ -132,7 +132,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       // Send authentication
       websocket.send(JSON.stringify({
         type: 'auth',
-        token: session.user.accessToken
+        token: localStorage.getItem('auth-token')
       }))
     }
 

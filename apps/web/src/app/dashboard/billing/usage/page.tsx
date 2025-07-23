@@ -70,7 +70,7 @@ export default function UsagePage() {
   const { data: usageData, isLoading: usageLoading } = useQuery({
     queryKey: ['usage-analytics', timeRange],
     queryFn: async () => {
-      const response = await apiService.billing.getUsageAnalytics({ timeRange })
+      const response = await apiService.billing.getUsageAnalytics(timeRange)
       return response as UsageData
     },
     enabled: !!session
@@ -187,11 +187,11 @@ export default function UsagePage() {
             {usageData?.limits.equipment !== -1 && (
               <div className="mt-2">
                 <Progress 
-                  value={getUsagePercentage(usageData.currentPeriod.equipment, usageData.limits.equipment)} 
+                  value={getUsagePercentage(usageData?.currentPeriod.equipment || 0, usageData?.limits.equipment || 0)} 
                   className="h-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatNumber(usageData.currentPeriod.equipment)} / {formatNumber(usageData.limits.equipment)}
+                  {formatNumber(usageData?.currentPeriod.equipment || 0)} / {formatNumber(usageData?.limits.equipment || 0)}
                 </p>
               </div>
             )}
@@ -214,11 +214,11 @@ export default function UsagePage() {
             {usageData?.limits.aiChecks !== -1 && (
               <div className="mt-2">
                 <Progress 
-                  value={getUsagePercentage(usageData.currentPeriod.aiChecks, usageData.limits.aiChecks)} 
+                  value={getUsagePercentage(usageData?.currentPeriod.aiChecks || 0, usageData?.limits.aiChecks || 0)} 
                   className="h-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatNumber(usageData.currentPeriod.aiChecks)} / {formatNumber(usageData.limits.aiChecks)}
+                  {formatNumber(usageData?.currentPeriod.aiChecks || 0)} / {formatNumber(usageData?.limits.aiChecks || 0)}
                 </p>
               </div>
             )}
@@ -241,11 +241,11 @@ export default function UsagePage() {
             {usageData?.limits.teamMembers !== -1 && (
               <div className="mt-2">
                 <Progress 
-                  value={getUsagePercentage(usageData.currentPeriod.teamMembers, usageData.limits.teamMembers)} 
+                  value={getUsagePercentage(usageData?.currentPeriod.teamMembers || 0, usageData?.limits.teamMembers || 0)} 
                   className="h-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatNumber(usageData.currentPeriod.teamMembers)} / {formatNumber(usageData.limits.teamMembers)}
+                  {formatNumber(usageData?.currentPeriod.teamMembers || 0)} / {formatNumber(usageData?.limits.teamMembers || 0)}
                 </p>
               </div>
             )}
@@ -268,11 +268,11 @@ export default function UsagePage() {
             {usageData?.limits.storage !== -1 && (
               <div className="mt-2">
                 <Progress 
-                  value={getUsagePercentage(usageData.currentPeriod.storage, usageData.limits.storage)} 
+                  value={getUsagePercentage(usageData?.currentPeriod.storage || 0, usageData?.limits.storage || 0)} 
                   className="h-2"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatBytes(usageData.currentPeriod.storage)} / {formatBytes(usageData.limits.storage)}
+                  {formatBytes(usageData?.currentPeriod.storage || 0)} / {formatBytes(usageData?.limits.storage || 0)}
                 </p>
               </div>
             )}

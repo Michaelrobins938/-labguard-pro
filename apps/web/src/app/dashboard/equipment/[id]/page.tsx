@@ -107,7 +107,7 @@ export default function EquipmentDetailPage() {
   const { data: equipment, isLoading: equipmentLoading } = useQuery({
     queryKey: ['equipment', equipmentId],
     queryFn: async () => {
-      const response = await apiService.equipment.getEquipment(equipmentId)
+      const response = await apiService.equipment.getById(equipmentId)
       return response as Equipment
     },
     enabled: !!equipmentId && !!session
@@ -115,7 +115,7 @@ export default function EquipmentDetailPage() {
 
   // Delete equipment mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiService.equipment.deleteEquipment(id),
+    mutationFn: (id: string) => apiService.equipment.delete(id),
     onSuccess: () => {
       toast.success('Equipment deleted successfully')
       router.push('/dashboard/equipment')
