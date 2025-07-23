@@ -1,20 +1,65 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { cn } from '@/lib/utils'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { Toaster } from 'sonner'
 
-const inter = Inter({ 
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'LabGuard Pro - AI-Powered Laboratory Compliance',
-  description: 'Revolutionary laboratory management platform with AI-powered compliance automation',
-  keywords: 'laboratory, compliance, AI, equipment, calibration, CAP, CLIA',
+  title: 'LabGuard Pro - Laboratory Compliance Automation',
+  description: 'AI-powered laboratory compliance automation platform with equipment management, calibration workflows, and regulatory compliance.',
+  keywords: 'laboratory, compliance, automation, equipment management, calibration, AI, biomedical',
+  authors: [{ name: 'LabGuard Pro Team' }],
+  creator: 'LabGuard Pro',
+  publisher: 'LabGuard Pro',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f0f23' },
+  ],
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'LabGuard Pro',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://labguard-pro.vercel.app',
+    title: 'LabGuard Pro - Laboratory Compliance Automation',
+    description: 'AI-powered laboratory compliance automation platform',
+    siteName: 'LabGuard Pro',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LabGuard Pro - Laboratory Compliance Automation',
+    description: 'AI-powered laboratory compliance automation platform',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 }
 
 export default function RootLayout({
@@ -23,21 +68,37 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={cn(inter.variable, 'dark')}>
-      <body className={cn(
-        'min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900',
-        'font-inter antialiased'
-      )}>
-        {/* Background decoration */}
-        <div className="fixed inset-0 z-[-2]">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900" />
-          <div className="absolute top-0 left-1/4 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}} />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '4s'}} />
-        </div>
+    <html lang="en" className="h-full">
+      <head>
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="LabGuard Pro" />
+        <meta name="msapplication-TileColor" content="#0f0f23" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#0f0f23" />
+        <meta name="theme-color" content="#0f0f23" />
+      </head>
+      <body className={`${inter.className} h-full antialiased`}>
         <SessionProvider>
           <QueryProvider>
-            {children}
+            <div className="min-h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+              {children}
+            </div>
+            <Toaster 
+              position="bottom-center"
+              toastOptions={{
+                style: {
+                  background: '#1e293b',
+                  color: '#f8fafc',
+                  border: '1px solid #334155',
+                },
+              }}
+            />
           </QueryProvider>
         </SessionProvider>
       </body>

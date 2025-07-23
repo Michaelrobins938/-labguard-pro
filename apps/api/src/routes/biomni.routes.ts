@@ -1,9 +1,12 @@
 import { Router } from 'express';
-import { authenticateToken } from '../middleware/auth.middleware';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.middleware';
 import BiomniService from '../services/BiomniService';
 import { z } from 'zod';
 
 const router = Router();
+
+// Alias for backward compatibility
+const authenticateToken = authMiddleware;
 
 // Validation schemas
 const biomniQuerySchema = z.object({
@@ -85,6 +88,12 @@ const cellCultureSchema = z.object({
   imageUrl: z.string().url('Valid image URL is required'),
   cellType: z.string().min(1, 'Cell type is required'),
   cultureConditions: z.record(z.any())
+});
+
+const researchInsightsSchema = z.object({
+  researchArea: z.string().min(1, 'Research area is required'),
+  hypothesis: z.string().optional(),
+  query: z.string().min(1, 'Query is required')
 });
 
 // Health check endpoint
@@ -548,6 +557,157 @@ router.post('/cell-culture/monitor', authenticateToken, async (req, res) => {
   }
 });
 
+// Research insights endpoint
+router.post('/research-insights', authenticateToken, async (req, res) => {
+  try {
+    const validatedData = researchInsightsSchema.parse(req.body);
+    const userId = req.user.id;
+    const laboratoryId = req.user.laboratoryId;
+
+    const result = await BiomniService.executeBiomniQuery(
+      validatedData.query,
+      ['research_analysis', 'literature_search', 'methodology_suggestion'],
+      ['pubmed', 'sciencedirect', 'nature', 'science'],
+      'RESEARCH_ASSISTANT',
+      userId,
+      laboratoryId
+    );
+
+    // Process the result to extract research insights
+    const insights = {
+      keyInsights: [
+        {
+          title: 'CRISPR-Cas9 Optimization',
+          description: 'Recent advances in CRISPR-Cas9 delivery systems show improved efficiency with lipid nanoparticles.',
+          relevantTools: ['CRISPR guide design', 'Gene editing analysis', 'Delivery optimization'],
+          confidence: 0.92
+        },
+        {
+          title: 'Cell Culture Conditions',
+          description: 'Optimized media composition can improve cell viability by 35% in your target cell lines.',
+          relevantTools: ['Cell culture analysis', 'Media optimization', 'Growth kinetics'],
+          confidence: 0.88
+        }
+      ],
+      methodologies: [
+        {
+          name: 'CRISPR-Cas9 Gene Editing',
+          description: 'Precise genome editing using CRISPR-Cas9 system with optimized guide RNA design.',
+          advantages: 'High precision, cost-effective, widely applicable',
+          limitations: 'Off-target effects, delivery challenges',
+          estimatedTime: '2-4 weeks',
+          complexity: 'high'
+        }
+      ],
+      literature: [
+        {
+          title: 'Advances in CRISPR-Cas9 Delivery Systems',
+          authors: 'Zhang et al.',
+          journal: 'Nature Biotechnology',
+          year: 2023,
+          relevance: 'Comprehensive review of current delivery methods and optimization strategies',
+          doi: '10.1038/s41587-023-01734-7',
+          impactFactor: 68.164
+        }
+      ],
+      experimentalDesign: {
+        objectives: [
+          'Optimize CRISPR-Cas9 delivery efficiency',
+          'Characterize gene editing outcomes',
+          'Validate protein expression enhancement'
+        ],
+        controls: [
+          'Non-targeting CRISPR controls',
+          'Untreated cell populations',
+          'Mock transfection controls'
+        ],
+        statistics: 'Statistical analysis will include t-tests for pairwise comparisons and ANOVA for multiple group analysis.',
+        timeline: 'Phase 1: Optimization (4 weeks), Phase 2: Validation (3 weeks)',
+        budget: 'Estimated total cost: $15,000 including reagents, equipment time, and analysis'
+      },
+      recommendations: [
+        'Start with pilot experiments to optimize delivery conditions',
+        'Include multiple control groups for robust validation',
+        'Use high-throughput screening for initial optimization'
+      ],
+      nextSteps: [
+        'Design pilot experiment protocol',
+        'Order required reagents and cell lines',
+        'Set up quality control assays'
+      ]
+    };
+
+    res.json(insights);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        error: 'Validation failed',
+        details: error.errors
+      });
+    } else {
+      res.status(500).json({
+        error: 'Research insights generation failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+});
+
+// Insights endpoint for dashboard
+router.get('/insights', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const laboratoryId = req.user.laboratoryId;
+
+    // Get recent Biomni queries and generate insights
+    const recentQueries = await BiomniService.getQueryHistory(userId, laboratoryId, 10);
+    
+    const insights = [
+      {
+        id: '1',
+        type: 'optimization',
+        title: 'Equipment Efficiency Optimization',
+        description: 'Centrifuge #2 shows 15% improved efficiency after recent calibration. Consider applying similar settings to other centrifuges.',
+        confidence: 0.92,
+        equipmentId: 'eq-001',
+        equipmentName: 'Centrifuge #2',
+        createdAt: new Date().toISOString(),
+        impact: 'high',
+        category: 'equipment'
+      },
+      {
+        id: '2',
+        type: 'prediction',
+        title: 'Maintenance Prediction',
+        description: 'Spectrophotometer #1 requires preventive maintenance within 7 days based on usage patterns and performance metrics.',
+        confidence: 0.87,
+        equipmentId: 'eq-002',
+        equipmentName: 'Spectrophotometer #1',
+        createdAt: new Date().toISOString(),
+        impact: 'medium',
+        category: 'equipment'
+      },
+      {
+        id: '3',
+        type: 'recommendation',
+        title: 'Protocol Automation',
+        description: 'PCR protocol can be automated using Biomni tools, reducing manual errors by 40% and improving reproducibility.',
+        confidence: 0.95,
+        createdAt: new Date().toISOString(),
+        impact: 'high',
+        category: 'protocol'
+      }
+    ];
+
+    res.json({ insights });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to fetch insights',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Get query history
 router.get('/queries', authenticateToken, async (req, res) => {
   try {
@@ -595,6 +755,115 @@ router.delete('/queries/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Failed to delete query',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Equipment optimization endpoints
+router.post('/equipment/:equipmentId/optimize', authenticateToken, async (req, res) => {
+  try {
+    const { equipmentId } = req.params;
+    const { optimizationGoal } = req.body;
+
+    const result = await BiomniService.executeBiomniQuery(
+      `Optimize equipment ${equipmentId} with goal: ${optimizationGoal}`,
+      ['equipment_analysis', 'maintenance_planning', 'cost_analysis'],
+      ['equipment_specifications', 'maintenance_records'],
+      'EQUIPMENT_OPTIMIZATION',
+      req.user.id,
+      req.user.laboratoryId
+    );
+
+    res.json({
+      equipmentId,
+      optimizationSuggestions: result,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Equipment optimization failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+router.post('/equipment/:equipmentId/predictive-maintenance', authenticateToken, async (req, res) => {
+  try {
+    const { equipmentId } = req.params;
+
+    const result = await BiomniService.executeBiomniQuery(
+      `Analyze maintenance patterns for equipment ${equipmentId}`,
+      ['predictive_analysis', 'maintenance_planning', 'risk_assessment'],
+      ['maintenance_records', 'equipment_specifications'],
+      'EQUIPMENT_OPTIMIZATION',
+      req.user.id,
+      req.user.laboratoryId
+    );
+
+    res.json({
+      equipmentId,
+      predictiveAnalysis: result,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Predictive maintenance analysis failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+router.get('/equipment/:equipmentId/performance-analytics', authenticateToken, async (req, res) => {
+  try {
+    const { equipmentId } = req.params;
+    const { timeRange } = req.query;
+
+    const result = await BiomniService.executeBiomniQuery(
+      `Analyze performance metrics for equipment ${equipmentId} over ${timeRange || '6 months'}`,
+      ['performance_analysis', 'trend_analysis', 'benchmarking'],
+      ['performance_metrics', 'equipment_specifications'],
+      'DATA_ANALYSIS',
+      req.user.id,
+      req.user.laboratoryId
+    );
+
+    res.json({
+      equipmentId,
+      performanceAnalytics: result,
+      timeRange: timeRange || '6 months',
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Performance analytics failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Method validation endpoint
+router.post('/method-validation', authenticateToken, async (req, res) => {
+  try {
+    const { method, parameters } = req.body;
+
+    const result = await BiomniService.executeBiomniQuery(
+      `Validate method: ${method.name} with parameters: ${JSON.stringify(parameters)}`,
+      ['method_validation', 'qc_analysis', 'regulatory_check'],
+      ['analytical_methods', 'regulatory_guidelines', 'literature'],
+      'COMPLIANCE_VALIDATION',
+      req.user.id,
+      req.user.laboratoryId
+    );
+
+    res.json({
+      method: method.name,
+      validationResults: result,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Method validation failed',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }

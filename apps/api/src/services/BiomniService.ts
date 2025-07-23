@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+web application import { PrismaClient } from '@prisma/client';
 import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';

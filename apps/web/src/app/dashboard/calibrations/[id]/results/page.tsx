@@ -1,528 +1,690 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
-  ArrowLeft,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  Download,
+  CheckCircle, 
+  AlertTriangle, 
+  Brain, 
+  Download, 
+  Share2, 
   FileText,
-  Brain,
-  BarChart3,
-  Calendar,
+  TrendingUp,
+  Target,
+  Shield,
+  Activity,
+  Clock,
   User,
-  Settings,
-  Thermometer,
-  Droplets,
-  Scale
+  Calendar,
+  BarChart3,
+  PieChart,
+  LineChart,
+  AlertCircle,
+  Lightbulb,
+  Sparkles,
+  Award,
+  Zap
 } from 'lucide-react'
+import { format } from 'date-fns'
 
 interface CalibrationResult {
   id: string
-  equipment: {
-    id: string
-    name: string
-    model: string
-    serialNumber: string
-    equipmentType: string
-    location: string
-  }
+  equipmentId: string
+  equipmentName: string
+  equipmentModel: string
   calibrationType: string
-  performedDate: string
-  status: string
-  complianceStatus: string
+  status: 'completed' | 'failed' | 'passed_with_conditions'
+  completionDate: string
+  performedBy: string
+  totalDuration: number
+  steps: CalibrationStep[]
+  aiAnalysis: AiAnalysis
   complianceScore: number
-  performedBy: {
-    id: string
-    name: string
-    email: string
-  }
-  template: {
-    id: string
-    name: string
-    description: string
-  }
-  measurements: {
-    linearity: {
-      weights: number[]
-      readings: number[]
-      deviations: number[]
-    }
-    repeatability: {
-      measurements: number[]
-      standardDeviation: number
-    }
-    accuracy: {
-      referenceValue: number
-      measuredValue: number
-      deviation: number
-    }
-  }
-  environmentalConditions: {
-    temperature: number
-    humidity: number
-    pressure?: number
-    vibration?: string
-  }
-  aiAnalysis: {
-    status: string
-    complianceScore: number
-    performanceSummary: string
-    correctiveActions: string[]
-    deviations: string[]
-    recommendations: string[]
-    confidence: number
-  }
-  certificate?: string
+  recommendations: string[]
   nextCalibrationDate: string
 }
 
+interface CalibrationStep {
+  id: string
+  title: string
+  status: 'completed' | 'failed'
+  duration: number
+  measurements: Measurement[]
+  aiValidation: AiValidation
+}
+
+interface Measurement {
+  id: string
+  parameter: string
+  expectedValue: string
+  actualValue: string
+  unit: string
+  tolerance: string
+  status: 'pass' | 'fail'
+  deviation: number
+}
+
+interface AiValidation {
+  status: 'passed' | 'failed' | 'passed_with_conditions'
+  confidence: number
+  insights: string[]
+  recommendations: string[]
+  issues: string[]
+}
+
+interface AiAnalysis {
+  overallStatus: 'excellent' | 'good' | 'acceptable' | 'needs_attention' | 'failed'
+  complianceScore: number
+  performanceMetrics: {
+    accuracy: number
+    precision: number
+    linearity: number
+    stability: number
+  }
+  keyFindings: string[]
+  riskAssessment: {
+    level: 'low' | 'medium' | 'high'
+    factors: string[]
+  }
+  recommendations: string[]
+  nextSteps: string[]
+}
+
 export default function CalibrationResultsPage() {
-  const router = useRouter()
   const params = useParams()
+  const router = useRouter()
   const calibrationId = params.id as string
   
+  const [result, setResult] = useState<CalibrationResult | null>(null)
   const [loading, setLoading] = useState(true)
-  const [generatingPDF, setGeneratingPDF] = useState(false)
-  const [calibrationResult, setCalibrationResult] = useState<CalibrationResult | null>(null)
+  const [generatingReport, setGeneratingReport] = useState(false)
 
-  // Mock data - replace with API call
   useEffect(() => {
-    const mockResult: CalibrationResult = {
-      id: calibrationId,
-      equipment: {
-        id: 'eq1',
-        name: 'Analytical Balance AB-001',
-        model: 'Sartorius ME36S',
-        serialNumber: 'AB-001',
-        equipmentType: 'ANALYTICAL_BALANCE',
-        location: 'Lab A - Room 101'
-      },
-      calibrationType: 'PERIODIC',
-      performedDate: '2024-01-15T10:30:00Z',
-      status: 'COMPLETED',
-      complianceStatus: 'COMPLIANT',
-      complianceScore: 95,
-      performedBy: {
-        id: 'user1',
-        name: 'Dr. Sarah Johnson',
-        email: 'sarah.johnson@lab.com'
-      },
-      template: {
-        id: 'tpl1',
-        name: 'Analytical Balance Calibration',
-        description: 'Standard calibration procedure for analytical balances'
-      },
-      measurements: {
-        linearity: {
-          weights: [0, 1, 5, 10, 20, 50, 100],
-          readings: [0.001, 1.002, 5.001, 10.003, 20.002, 50.001, 100.002],
-          deviations: [0.001, 0.002, 0.001, 0.003, 0.002, 0.001, 0.002]
-        },
-        repeatability: {
-          measurements: [10.001, 10.002, 10.001, 10.003, 10.002, 10.001, 10.002, 10.001, 10.003, 10.002],
-          standardDeviation: 0.0008
-        },
-        accuracy: {
-          referenceValue: 10.000,
-          measuredValue: 10.002,
-          deviation: 0.002
-        }
-      },
-      environmentalConditions: {
-        temperature: 22.5,
-        humidity: 45.0,
-        pressure: 1013.25,
-        vibration: 'LOW'
-      },
-      aiAnalysis: {
-        status: 'PASS',
-        complianceScore: 95,
-        performanceSummary: 'All measurements within acceptable limits. Equipment meets calibration requirements for CAP/CLIA compliance.',
-        correctiveActions: [],
-        deviations: [],
-        recommendations: [
-          'Continue with normal operation',
-          'Schedule next calibration in 12 months',
-          'Monitor environmental conditions regularly'
-        ],
-        confidence: 0.95
-      },
-      certificate: 'CAL-2024-001',
-      nextCalibrationDate: '2025-01-15T10:30:00Z'
-    }
-
-    setCalibrationResult(mockResult)
-    setLoading(false)
+    fetchCalibrationResults()
   }, [calibrationId])
 
-  const handleGeneratePDF = async () => {
-    setGeneratingPDF(true)
+  const fetchCalibrationResults = async () => {
     try {
-      // Mock PDF generation
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      console.log('PDF generated successfully')
+      // Mock data - replace with API call
+      const mockResult: CalibrationResult = {
+        id: calibrationId,
+        equipmentId: 'eq-001',
+        equipmentName: 'Centrifuge #1',
+        equipmentModel: 'Eppendorf 5810R',
+        calibrationType: 'ROUTINE',
+        status: 'completed',
+        completionDate: '2024-02-15T14:30:00Z',
+        performedBy: 'Dr. Sarah Johnson',
+        totalDuration: 120,
+        nextCalibrationDate: '2024-05-15T10:00:00Z',
+        complianceScore: 95,
+        recommendations: [
+          'Equipment is performing within acceptable parameters',
+          'Continue with normal operation',
+          'Monitor rotor condition for wear',
+          'Schedule next calibration in 3 months'
+        ],
+        steps: [
+          {
+            id: 'step-1',
+            title: 'Pre-calibration Inspection',
+            status: 'completed',
+            duration: 15,
+            measurements: [
+              {
+                id: 'meas-1',
+                parameter: 'Visual Inspection',
+                expectedValue: 'No visible damage',
+                actualValue: 'No visible damage',
+                unit: 'Pass/Fail',
+                tolerance: 'Pass',
+                status: 'pass',
+                deviation: 0
+              }
+            ],
+            aiValidation: {
+              status: 'passed',
+              confidence: 0.95,
+              insights: ['Equipment shows normal wear patterns', 'No safety concerns detected'],
+              recommendations: ['Proceed with calibration', 'Monitor rotor condition'],
+              issues: []
+            }
+          },
+          {
+            id: 'step-2',
+            title: 'Speed Calibration',
+            status: 'completed',
+            duration: 30,
+            measurements: [
+              {
+                id: 'meas-2',
+                parameter: '1000 RPM',
+                expectedValue: '1000 ± 50',
+                actualValue: '995',
+                unit: 'RPM',
+                tolerance: '±50',
+                status: 'pass',
+                deviation: -5
+              },
+              {
+                id: 'meas-3',
+                parameter: '5000 RPM',
+                expectedValue: '5000 ± 100',
+                actualValue: '4980',
+                unit: 'RPM',
+                tolerance: '±100',
+                status: 'pass',
+                deviation: -20
+              }
+            ],
+            aiValidation: {
+              status: 'passed',
+              confidence: 0.92,
+              insights: ['Speed accuracy is within acceptable limits', 'Minor deviations are normal'],
+              recommendations: ['Continue with normal operation', 'Monitor for drift over time'],
+              issues: []
+            }
+          },
+          {
+            id: 'step-3',
+            title: 'Temperature Calibration',
+            status: 'completed',
+            duration: 45,
+            measurements: [
+              {
+                id: 'meas-4',
+                parameter: 'Temperature Stability',
+                expectedValue: '±0.5°C',
+                actualValue: '±0.3°C',
+                unit: '°C',
+                tolerance: '±0.5',
+                status: 'pass',
+                deviation: -0.2
+              }
+            ],
+            aiValidation: {
+              status: 'passed',
+              confidence: 0.98,
+              insights: ['Temperature control is excellent', 'Stability exceeds requirements'],
+              recommendations: ['No action required', 'System performing optimally'],
+              issues: []
+            }
+          },
+          {
+            id: 'step-4',
+            title: 'Final Validation',
+            status: 'completed',
+            duration: 20,
+            measurements: [
+              {
+                id: 'meas-5',
+                parameter: 'Overall Performance',
+                expectedValue: 'Pass',
+                actualValue: 'Pass',
+                unit: 'Pass/Fail',
+                tolerance: 'Pass',
+                status: 'pass',
+                deviation: 0
+              }
+            ],
+            aiValidation: {
+              status: 'passed',
+              confidence: 0.96,
+              insights: ['All systems operational', 'Calibration successful'],
+              recommendations: ['Equipment ready for use', 'Update calibration records'],
+              issues: []
+            }
+          }
+        ],
+        aiAnalysis: {
+          overallStatus: 'excellent',
+          complianceScore: 95,
+          performanceMetrics: {
+            accuracy: 98.5,
+            precision: 97.2,
+            linearity: 99.1,
+            stability: 96.8
+          },
+          keyFindings: [
+            'Equipment meets all calibration requirements',
+            'Performance exceeds minimum standards',
+            'No corrective actions required',
+            'Equipment is suitable for continued use'
+          ],
+          riskAssessment: {
+            level: 'low',
+            factors: [
+              'All measurements within tolerance',
+              'No safety concerns identified',
+              'Equipment in good condition'
+            ]
+          },
+          recommendations: [
+            'Continue with normal operation',
+            'Schedule next calibration in 3 months',
+            'Monitor for any performance changes',
+            'Maintain regular maintenance schedule'
+          ],
+          nextSteps: [
+            'Update equipment calibration records',
+            'Notify relevant personnel of completion',
+            'Schedule next calibration',
+            'Monitor equipment performance'
+          ]
+        }
+      }
+      
+      setResult(mockResult)
     } catch (error) {
-      console.error('Failed to generate PDF:', error)
+      console.error('Failed to fetch calibration results:', error)
     } finally {
-      setGeneratingPDF(false)
+      setLoading(false)
+    }
+  }
+
+  const handleDownloadReport = async () => {
+    setGeneratingReport(true)
+    
+    try {
+      const response = await fetch(`/api/calibrations/${calibrationId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `calibration-report-${calibrationId}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+    } catch (error) {
+      console.error('Failed to download report:', error)
+    } finally {
+      setGeneratingReport(false)
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PASS':
-      case 'COMPLIANT':
-        return 'bg-green-100 text-green-800'
-      case 'FAIL':
-      case 'NON_COMPLIANT':
-        return 'bg-red-100 text-red-800'
-      case 'CONDITIONAL':
-        return 'bg-yellow-100 text-yellow-800'
+      case 'completed':
+      case 'passed':
+      case 'excellent':
+        return 'text-green-400'
+      case 'failed':
+        return 'text-red-400'
+      case 'passed_with_conditions':
+      case 'good':
+        return 'text-yellow-400'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'text-gray-400'
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PASS':
-      case 'COMPLIANT':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
-      case 'FAIL':
-      case 'NON_COMPLIANT':
-        return <AlertTriangle className="w-5 h-5 text-red-600" />
-      case 'CONDITIONAL':
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />
-      default:
-        return <Clock className="w-5 h-5 text-gray-600" />
+  const getStatusBadge = (status: string) => {
+    const badgeStyles = {
+      completed: 'bg-green-500/20 text-green-400 border-green-500/30',
+      passed: 'bg-green-500/20 text-green-400 border-green-500/30',
+      failed: 'bg-red-500/20 text-red-400 border-red-500/30',
+      excellent: 'bg-green-500/20 text-green-400 border-green-500/30',
+      good: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      acceptable: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      needs_attention: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
     }
+    
+    return badgeStyles[status] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading calibration results...</p>
+        </div>
       </div>
     )
   }
 
-  if (!calibrationResult) {
+  if (!result) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Calibration not found</h3>
-        <p className="text-gray-600">The requested calibration could not be found.</p>
+      <div className="text-center py-8">
+        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-2">Results Not Found</h2>
+        <p className="text-gray-400">The calibration results could not be found.</p>
       </div>
     )
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Calibration Results</h1>
-            <p className="text-gray-600">{calibrationResult.equipment.name}</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-white">Calibration Results</h1>
+          <p className="text-gray-400 mt-2">
+            {result.equipmentName} - {result.calibrationType} Calibration
+          </p>
         </div>
-        
-        <div className="flex space-x-2">
-          <button
-            onClick={handleGeneratePDF}
-            disabled={generatingPDF}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
-          >
-            {generatingPDF ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <FileText className="w-4 h-4" />
-                <span>Generate PDF</span>
-              </>
-            )}
-          </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2">
-            <Download className="w-4 h-4" />
-            <span>Download Certificate</span>
-          </button>
+        <div className="flex items-center space-x-2">
+          <Badge className={getStatusBadge(result.status)}>
+            {result.status.replace('_', ' ')}
+          </Badge>
+          <Badge variant="outline" className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+            <Brain className="w-3 h-3 mr-1" />
+            AI Enhanced
+          </Badge>
         </div>
       </div>
 
-      {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Settings className="w-6 h-6 text-blue-600" />
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Award className="w-5 h-5 text-green-400" />
+              <div>
+                <p className="text-sm text-gray-400">Compliance Score</p>
+                <p className="text-2xl font-bold text-white">{result.complianceScore}%</p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Equipment</p>
-              <p className="text-lg font-bold text-gray-900">{calibrationResult.equipment.name}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Clock className="w-5 h-5 text-blue-400" />
+              <div>
+                <p className="text-sm text-gray-400">Duration</p>
+                <p className="text-2xl font-bold text-white">{result.totalDuration} min</p>
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              {getStatusIcon(calibrationResult.aiAnalysis.status)}
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-purple-400" />
+              <div>
+                <p className="text-sm text-gray-400">Performed By</p>
+                <p className="text-lg font-medium text-white">{result.performedBy}</p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">AI Status</p>
-              <p className="text-lg font-bold text-gray-900">{calibrationResult.aiAnalysis.status}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-yellow-400" />
+              <div>
+                <p className="text-sm text-gray-400">Next Due</p>
+                <p className="text-lg font-medium text-white">
+                  {format(new Date(result.nextCalibrationDate), 'MMM dd')}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Compliance Score</p>
-              <p className="text-lg font-bold text-gray-900">{calibrationResult.complianceScore}%</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-orange-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Next Calibration</p>
-              <p className="text-lg font-bold text-gray-900">
-                {new Date(calibrationResult.nextCalibrationDate).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* AI Analysis Results */}
+        {/* Main Results */}
         <div className="lg:col-span-2 space-y-6">
           {/* AI Analysis Summary */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center space-x-2 mb-4">
-              <Brain className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">AI Analysis Results</h2>
-            </div>
-            
-            <div className={`p-4 rounded-lg mb-4 ${getStatusColor(calibrationResult.aiAnalysis.status)}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Status: {calibrationResult.aiAnalysis.status}</h3>
-                  <p className="text-sm mt-1">Confidence: {(calibrationResult.aiAnalysis.confidence * 100).toFixed(1)}%</p>
-                </div>
-                {getStatusIcon(calibrationResult.aiAnalysis.status)}
-              </div>
-            </div>
-            
-            <div className="space-y-4">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Brain className="w-5 h-5 text-purple-400" />
+                <span>AI Analysis Summary</span>
+                <Badge className={getStatusBadge(result.aiAnalysis.overallStatus)}>
+                  {result.aiAnalysis.overallStatus.replace('_', ' ')}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Performance Metrics */}
               <div>
-                <h3 className="font-medium text-gray-900 mb-2">Performance Summary</h3>
-                <p className="text-sm text-gray-600">{calibrationResult.aiAnalysis.performanceSummary}</p>
+                <h4 className="font-medium text-white mb-3">Performance Metrics</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-blue-500/10 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">
+                      {result.aiAnalysis.performanceMetrics.accuracy}%
+                    </div>
+                    <div className="text-sm text-gray-400">Accuracy</div>
+                  </div>
+                  <div className="text-center p-3 bg-green-500/10 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">
+                      {result.aiAnalysis.performanceMetrics.precision}%
+                    </div>
+                    <div className="text-sm text-gray-400">Precision</div>
+                  </div>
+                  <div className="text-center p-3 bg-purple-500/10 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-400">
+                      {result.aiAnalysis.performanceMetrics.linearity}%
+                    </div>
+                    <div className="text-sm text-gray-400">Linearity</div>
+                  </div>
+                  <div className="text-center p-3 bg-yellow-500/10 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-400">
+                      {result.aiAnalysis.performanceMetrics.stability}%
+                    </div>
+                    <div className="text-sm text-gray-400">Stability</div>
+                  </div>
+                </div>
               </div>
-              
-              {calibrationResult.aiAnalysis.recommendations.length > 0 && (
-                <div>
-                  <h3 className="font-medium text-gray-900 mb-2">Recommendations</h3>
-                  <ul className="text-sm text-gray-600 space-y-1">
-                    {calibrationResult.aiAnalysis.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <span className="text-blue-600 mt-1">•</span>
-                        <span>{rec}</span>
-                      </li>
+
+              {/* Key Findings */}
+              <div>
+                <h4 className="font-medium text-white mb-3 flex items-center">
+                  <Lightbulb className="w-4 h-4 mr-2 text-yellow-400" />
+                  Key Findings
+                </h4>
+                <div className="space-y-2">
+                  {result.aiAnalysis.keyFindings.map((finding, index) => (
+                    <div key={index} className="flex items-start space-x-2 p-2 bg-yellow-500/10 rounded">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <span className="text-sm text-gray-300">{finding}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Risk Assessment */}
+              <div>
+                <h4 className="font-medium text-white mb-3 flex items-center">
+                  <Shield className="w-4 h-4 mr-2 text-red-400" />
+                  Risk Assessment
+                </h4>
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-red-300">Risk Level</span>
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        result.aiAnalysis.riskAssessment.level === 'low' ? 'border-green-500 text-green-400' :
+                        result.aiAnalysis.riskAssessment.level === 'medium' ? 'border-yellow-500 text-yellow-400' :
+                        'border-red-500 text-red-400'
+                      }
+                    >
+                      {result.aiAnalysis.riskAssessment.level.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {result.aiAnalysis.riskAssessment.factors.map((factor, index) => (
+                      <div key={index} className="text-xs text-red-200">• {factor}</div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Measurement Data */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Measurement Data</h2>
-            
-            <div className="space-y-6">
-              {/* Linearity */}
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Linearity Check</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Reference (g)</th>
-                        <th className="px-3 py-2 text-left">Measured (g)</th>
-                        <th className="px-3 py-2 text-left">Deviation (mg)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {calibrationResult.measurements.linearity.weights.map((weight, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-2">{weight}</td>
-                          <td className="px-3 py-2">{calibrationResult.measurements.linearity.readings[index]}</td>
-                          <td className="px-3 py-2">{calibrationResult.measurements.linearity.deviations[index]}</td>
-                        </tr>
+          {/* Detailed Steps */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="w-5 h-5 text-blue-400" />
+                <span>Calibration Steps</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {result.steps.map((step, index) => (
+                  <div key={step.id} className="border border-white/10 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-white">Step {index + 1}</span>
+                        <h4 className="font-medium text-gray-200">{step.title}</h4>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={getStatusBadge(step.status)}>
+                          {step.status}
+                        </Badge>
+                        <span className="text-xs text-gray-400">{step.duration} min</span>
+                      </div>
+                    </div>
+
+                    {/* Measurements */}
+                    <div className="space-y-2 mb-3">
+                      {step.measurements.map((measurement) => (
+                        <div key={measurement.id} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                          <span className="text-sm text-gray-300">{measurement.parameter}</span>
+                          <div className="flex items-center space-x-4">
+                            <span className="text-sm text-gray-400">{measurement.actualValue}</span>
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                measurement.status === 'pass' ? 'border-green-500 text-green-400' :
+                                'border-red-500 text-red-400'
+                              }
+                            >
+                              {measurement.status}
+                            </Badge>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                    </div>
 
-              {/* Repeatability */}
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Repeatability Check</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Standard Deviation: {calibrationResult.measurements.repeatability.standardDeviation} mg</p>
-                    <p className="text-sm text-gray-600">Measurements: {calibrationResult.measurements.repeatability.measurements.join(', ')}</p>
+                    {/* AI Validation */}
+                    {step.aiValidation && (
+                      <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-purple-300">AI Validation</span>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={getStatusBadge(step.aiValidation.status)}>
+                              {step.aiValidation.status}
+                            </Badge>
+                            <span className="text-xs text-gray-400">
+                              {Math.round(step.aiValidation.confidence * 100)}% confidence
+                            </span>
+                          </div>
+                        </div>
+                        {step.aiValidation.insights.length > 0 && (
+                          <div className="text-xs text-purple-200">
+                            {step.aiValidation.insights[0]}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm font-medium text-gray-900">Acceptance Criteria</p>
-                    <p className="text-sm text-gray-600">SD &lt; 0.1mg</p>
-                  </div>
-                </div>
+                ))}
               </div>
-
-              {/* Accuracy */}
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Accuracy Check</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Reference Value</p>
-                    <p className="font-medium">{calibrationResult.measurements.accuracy.referenceValue} g</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Measured Value</p>
-                    <p className="font-medium">{calibrationResult.measurements.accuracy.measuredValue} g</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Deviation</p>
-                    <p className="font-medium">{calibrationResult.measurements.accuracy.deviation} mg</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Calibration Details */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Calibration Details</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600">Certificate Number</p>
-                <p className="font-medium">{calibrationResult.certificate}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-gray-600">Performed Date</p>
-                <p className="font-medium">{new Date(calibrationResult.performedDate).toLocaleString()}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-gray-600">Performed By</p>
-                <p className="font-medium">{calibrationResult.performedBy.name}</p>
-                <p className="text-sm text-gray-500">{calibrationResult.performedBy.email}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-gray-600">Template Used</p>
-                <p className="font-medium">{calibrationResult.template.name}</p>
-              </div>
-              
-              <div>
-                <p className="text-sm text-gray-600">Calibration Type</p>
-                <p className="font-medium">{calibrationResult.calibrationType}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Environmental Conditions */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Environmental Conditions</h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Thermometer className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-600">Temperature</p>
-                  <p className="font-medium">{calibrationResult.environmentalConditions.temperature}°C</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <Droplets className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-600">Humidity</p>
-                  <p className="font-medium">{calibrationResult.environmentalConditions.humidity}%</p>
-                </div>
-              </div>
-              
-              {calibrationResult.environmentalConditions.pressure && (
-                <div className="flex items-center space-x-3">
-                  <Scale className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Pressure</p>
-                    <p className="font-medium">{calibrationResult.environmentalConditions.pressure} hPa</p>
+          {/* Recommendations */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Sparkles className="w-5 h-5 text-green-400" />
+                <span>Recommendations</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {result.aiAnalysis.recommendations.map((rec, index) => (
+                  <div key={index} className="flex items-start space-x-2 p-2 bg-green-500/10 rounded">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-sm text-gray-300">{rec}</span>
                   </div>
-                </div>
-              )}
-              
-              {calibrationResult.environmentalConditions.vibration && (
-                <div className="flex items-center space-x-3">
-                  <Settings className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Vibration</p>
-                    <p className="font-medium">{calibrationResult.environmentalConditions.vibration}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Compliance Status */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Compliance Status</h2>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Overall Status</span>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(calibrationResult.complianceStatus)}`}>
-                  {calibrationResult.complianceStatus}
-                </span>
+          {/* Next Steps */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Target className="w-5 h-5 text-blue-400" />
+                <span>Next Steps</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {result.aiAnalysis.nextSteps.map((step, index) => (
+                  <div key={index} className="flex items-start space-x-2 p-2 bg-blue-500/10 rounded">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-sm text-gray-300">{step}</span>
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Compliance Score</span>
-                <span className="font-medium">{calibrationResult.complianceScore}%</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Next Calibration</span>
-                <span className="font-medium">{new Date(calibrationResult.nextCalibrationDate).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Zap className="w-5 h-5 text-yellow-400" />
+                <span>Actions</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button 
+                onClick={handleDownloadReport}
+                disabled={generatingReport}
+                className="w-full"
+              >
+                {generatingReport ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Report
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" className="w-full">
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Results
+              </Button>
+              <Button variant="outline" className="w-full">
+                <FileText className="w-4 h-4 mr-2" />
+                View Certificate
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

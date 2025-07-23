@@ -8,6 +8,7 @@ import { InteractiveVisualAnalysis } from '@/components/ai/InteractiveVisualAnal
 import { ProtocolGenerationComponent } from '@/components/ai/ProtocolGenerationComponent'
 import { ProtocolWizard } from '@/components/ai/ProtocolWizard'
 import { VisualAnalysisComponent } from '@/components/ai/VisualAnalysisComponent'
+import { ResearchAssistant } from '@/components/ai/ResearchAssistant'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -146,6 +147,10 @@ export default function AIPage() {
             <TestTube className="w-4 h-4" />
             <span>Protocols</span>
           </TabsTrigger>
+          <TabsTrigger value="research" className="flex items-center space-x-2">
+            <Dna className="w-4 h-4" />
+            <span>Research</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="assistant" className="space-y-4">
@@ -172,6 +177,10 @@ export default function AIPage() {
             <ProtocolGenerationComponent />
             <ProtocolWizard />
           </div>
+        </TabsContent>
+
+        <TabsContent value="research" className="space-y-4">
+          <ResearchAssistant />
         </TabsContent>
       </Tabs>
 
