@@ -70,15 +70,16 @@ export default function AIDashboardPage() {
 
   const fetchCapabilities = async () => {
     try {
-      const response = await fetch('/api/biomni/capabilities', {
-        headers: {
-          'Authorization': `Bearer ${session?.accessToken}`
-        }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setCapabilities(data)
+      // For now, use mock data since the API endpoints don't exist yet
+      const mockCapabilities: BiomniCapabilities = {
+        tools: ['Visual Analysis', 'Protocol Generation', 'Data Analysis', 'Equipment Optimization'],
+        databases: ['PubMed', 'BioRxiv', 'Clinical Trials', 'Equipment Manuals'],
+        totalTools: 4,
+        totalDatabases: 4,
+        categories: ['VISUAL_ANALYSIS', 'PROTOCOL_GENERATION', 'DATA_ANALYSIS', 'EQUIPMENT_OPTIMIZATION'],
+        features: ['Image Recognition', 'Protocol Templates', 'Statistical Analysis', 'Predictive Maintenance']
       }
+      setCapabilities(mockCapabilities)
     } catch (error) {
       console.error('Failed to fetch capabilities:', error)
     }
@@ -86,15 +87,32 @@ export default function AIDashboardPage() {
 
   const fetchRecentQueries = async () => {
     try {
-      const response = await fetch('/api/biomni/queries?limit=10', {
-        headers: {
-          'Authorization': `Bearer ${session?.accessToken}`
+      // For now, use mock data since the API endpoints don't exist yet
+      const mockQueries: BiomniQuery[] = [
+        {
+          id: '1',
+          query: 'Analyze cell culture image for contamination',
+          toolsUsed: ['Visual Analysis'],
+          databasesQueried: ['PubMed'],
+          status: 'COMPLETED',
+          confidence: 0.95,
+          executionTime: 2.3,
+          cost: 0.15,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          query: 'Generate PCR protocol for COVID-19 detection',
+          toolsUsed: ['Protocol Generation'],
+          databasesQueried: ['BioRxiv'],
+          status: 'EXECUTING',
+          confidence: 0.87,
+          executionTime: 1.8,
+          cost: 0.12,
+          createdAt: new Date(Date.now() - 3600000).toISOString()
         }
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setRecentQueries(data)
-      }
+      ]
+      setRecentQueries(mockQueries)
     } catch (error) {
       console.error('Failed to fetch recent queries:', error)
     } finally {
