@@ -83,7 +83,7 @@ class AIService {
       })
 
       // Substitute variables in template
-      const prompt = this.substituteVariables(template.promptTemplate, variables)
+      const prompt = this.substituteVariables(template.template, variables)
 
       // Call OpenAI API
       const aiResponse = await this.callOpenAI(prompt)
@@ -311,20 +311,18 @@ class AIService {
       const tokenCount = usage?.total_tokens || 0
       const cost = this.calculateCost(tokenCount)
 
-      await prisma.usageRecord.create({
+      await prisma.usageLog.create({
         data: {
-          feature: 'ai_compliance_check',
+          userId: userId,
+          laboratoryId: laboratoryId,
+          action: 'ai_compliance_check',
+          resource: 'openai',
           quantity: tokenCount,
           cost: cost,
           metadata: {
             model: process.env.OPENAI_MODEL || 'gpt-4',
             promptTokens: usage?.prompt_tokens || 0,
             completionTokens: usage?.completion_tokens || 0
-          },
-          subscription: {
-            connect: {
-              laboratoryId: laboratoryId
-            }
           }
         }
       })
@@ -368,13 +366,12 @@ class AIService {
           id: true,
           name: true,
           description: true,
-          category: true,
+          equipmentType: true,
           version: true,
-          usage_count: true,
           createdAt: true
         },
         orderBy: {
-          usage_count: 'desc'
+          createdAt: 'desc'
         }
       })
 
@@ -392,23 +389,24 @@ class AIService {
   async createTemplate(data: {
     name: string
     description?: string
-    category: string
-    promptTemplate: string
+    equipmentType: string
+    template: string
     variables: string[]
     safetyChecks: string[]
-    acceptanceCriteria: Record<string, any>
+    validationCriteria: Record<string, any>
     laboratoryId: string
   }): Promise<any> {
     try {
       const template = await prisma.complianceTemplate.create({
         data: {
+          title: data.name,
           name: data.name,
           description: data.description,
-          category: data.category,
-          promptTemplate: data.promptTemplate,
+          equipmentType: data.equipmentType as any,
+          template: data.template,
           variables: data.variables,
           safetyChecks: data.safetyChecks,
-          acceptanceCriteria: data.acceptanceCriteria,
+          validationCriteria: data.validationCriteria,
           laboratoryId: data.laboratoryId
         }
       })
@@ -442,13 +440,11 @@ class AIService {
           break
       }
 
-      const usage = await prisma.usageRecord.groupBy({
-        by: ['feature'],
+      const usage = await prisma.usageLog.groupBy({
+        by: ['action'],
         where: {
-          subscription: {
-            laboratoryId: laboratoryId
-          },
-          recordedAt: {
+          laboratoryId: laboratoryId,
+          createdAt: {
             gte: startDate
           }
         },
@@ -461,9 +457,9 @@ class AIService {
 
       return {
         period,
-        totalTokens: usage.reduce((sum, record) => sum + (record._sum.quantity || 0), 0),
-        totalCost: usage.reduce((sum, record) => sum + (record._sum.cost || 0), 0),
-        totalRequests: usage.reduce((sum, record) => sum + record._count, 0),
+        totalTokens: usage.reduce((sum: number, record: any) => sum + (record._sum.quantity || 0), 0),
+        totalCost: usage.reduce((sum: number, record: any) => sum + (record._sum.cost || 0), 0),
+        totalRequests: usage.reduce((sum: number, record: any) => sum + record._count, 0),
         breakdown: usage
       }
 

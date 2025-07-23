@@ -14,11 +14,11 @@ import { PricingSection } from '@/components/landing/PricingSection'
 import { FAQSection } from '@/components/landing/FAQSection'
 import { CTASection } from '@/components/landing/CTASection'
 import { Footer } from '@/components/landing/Footer'
-import { BiomniAssistant } from '@/components/ai/BiomniAssistant'
+
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <Navigation />
       <HeroSection />
       <BiomniShowcase />
@@ -33,7 +33,6 @@ export default function LandingPage() {
       <FAQSection />
       <CTASection />
       <Footer />
-      <BiomniAssistant />
     </div>
   )
 } 

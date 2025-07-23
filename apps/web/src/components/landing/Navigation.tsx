@@ -18,29 +18,29 @@ export function Navigation() {
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-2xl font-bold text-gray-900 tracking-tight">LabGuard Pro</span>
-              <span className="text-xs text-gray-500 font-medium">Enterprise Compliance</span>
+              <span className="text-2xl font-bold text-white tracking-tight">LabGuard Pro</span>
+              <span className="text-xs text-gray-300 font-medium">Enterprise Compliance</span>
             </div>
           </div>
           
           {/* Navigation Links with glassmorphic styling */}
           <nav className="hidden lg:flex space-x-8">
-            <a href="#features" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium relative group">
+            <a href="#features" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group">
               What we do
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
-            <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium relative group flex items-center">
+            <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group flex items-center">
               Our offerings
               <ChevronDown className="w-4 h-4 ml-1" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
-            <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium relative group">
+            <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group">
               Pricing
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
-            <a href="#about" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium relative group">
+            <a href="#about" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group">
               Blog
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
             </a>
           </nav>
           
@@ -48,7 +48,7 @@ export function Navigation() {
           <div className="flex items-center space-x-4">
             <Link 
               href="/auth/login" 
-              className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium px-4 py-2 rounded-xl hover:bg-white/50 backdrop-blur-sm"
+              className="text-white hover:text-blue-400 transition-all duration-300 font-medium px-4 py-2 rounded-xl hover:bg-white/20 backdrop-blur-sm"
             >
               Log in
             </Link>
@@ -74,21 +74,21 @@ export function Navigation() {
         {isOpen && (
           <div className="lg:hidden py-6 border-t border-white/20 bg-white/10 backdrop-blur-md">
             <div className="flex flex-col space-y-4">
-              <a href="#features" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/50">
+              <a href="#features" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
                 What we do
               </a>
-              <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/50">
+              <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
                 Our offerings
               </a>
-              <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/50">
+              <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
                 Pricing
               </a>
-              <a href="#about" className="text-gray-700 hover:text-blue-600 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/50">
+              <a href="#about" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
                 Blog
               </a>
               <div className="flex flex-col space-y-3 pt-6 border-t border-white/20">
                 <Link href="/auth/login">
-                  <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-blue-600 hover:bg-white/50 rounded-xl">
+                  <Button variant="ghost" className="w-full justify-start text-white hover:text-blue-400 hover:bg-white/20 rounded-xl">
                     Log in
                   </Button>
                 </Link>

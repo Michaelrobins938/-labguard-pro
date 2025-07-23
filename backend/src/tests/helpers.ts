@@ -11,7 +11,7 @@ export async function createTestLaboratory() {
       email: 'test@labguard.com',
       phone: '+1234567890',
       isActive: true,
-      subscriptionPlan: 'STARTER'
+      planType: 'STARTER'
     }
   })
 }
@@ -39,7 +39,7 @@ export async function createTestEquipment(laboratoryId: string) {
       model: 'Test Model',
       serialNumber: 'TEST123',
       manufacturer: 'Test Manufacturer',
-      equipmentType: 'ANALYTICAL_BALANCE',
+      equipmentType: 'BALANCE',
       location: 'Test Lab',
       status: 'ACTIVE',
       calibrationIntervalDays: 365,

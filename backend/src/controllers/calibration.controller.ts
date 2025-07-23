@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { logger } from '../utils/logger'
+import { ApiError } from '../utils/errors'
 import { aiService } from '../utils/ai.service'
 
 const prisma = new PrismaClient()
@@ -9,49 +10,75 @@ const prisma = new PrismaClient()
 // Validation schemas
 const createCalibrationSchema = z.object({
   equipmentId: z.string().cuid(),
-  calibrationType: z.enum(['INITIAL', 'PERIODIC', 'AFTER_REPAIR', 'VERIFICATION', 'INTERIM_CHECK']),
-  scheduledDate: z.string().datetime(),
-  dueDate: z.string().datetime(),
+  calibrationDate: z.date(),
+  dueDate: z.date(),
+  scheduledDate: z.date().optional(),
+  method: z.string().optional(),
+  standardUsed: z.string().optional(),
+  temperature: z.number().optional(),
+  humidity: z.number().optional(),
+  pressure: z.number().optional(),
   templateId: z.string().cuid().optional(),
-  notes: z.string().optional(),
-  assignedToId: z.string().cuid().optional()
+  notes: z.string().optional()
 })
 
 const updateCalibrationSchema = z.object({
-  performedDate: z.string().datetime().optional(),
-  status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'CANCELLED', 'FAILED']).optional(),
-  measurements: z.record(z.any()).optional(),
-  environmentalConditions: z.record(z.any()).optional(),
-  standardsUsed: z.record(z.any()).optional(),
-  complianceStatus: z.enum(['COMPLIANT', 'NON_COMPLIANT', 'CONDITIONAL', 'PENDING', 'UNDER_REVIEW']).optional(),
-  complianceScore: z.number().min(0).max(100).optional(),
-  deviations: z.array(z.any()).optional(),
-  correctiveActions: z.array(z.any()).optional(),
-  certificate: z.string().optional(),
-  notes: z.string().optional(),
-  aiAnalysis: z.record(z.any()).optional()
+  equipmentId: z.string().cuid().optional(),
+  calibrationDate: z.date().optional(),
+  dueDate: z.date().optional(),
+  scheduledDate: z.date().optional(),
+  method: z.string().optional(),
+  standardUsed: z.string().optional(),
+  temperature: z.number().optional(),
+  humidity: z.number().optional(),
+  pressure: z.number().optional(),
+  templateId: z.string().cuid().optional(),
+  notes: z.string().optional()
 })
 
-const aiValidationSchema = z.object({
+const completeCalibrationSchema = z.object({
+  result: z.enum(['PASS', 'FAIL', 'CONDITIONAL']),
+  complianceStatus: z.string().optional(),
+  accuracy: z.number().optional(),
+  precision: z.number().optional(),
+  linearity: z.number().optional(),
+  repeatability: z.number().optional(),
+  sensitivity: z.number().optional(),
+  isCompliant: z.boolean().optional(),
+  complianceScore: z.number().optional(),
+  validationNotes: z.string().optional(),
+  notes: z.string().optional(),
+  deviations: z.any().optional(),
+  correctiveActions: z.any().optional()
+})
+
+const validateCalibrationSchema = z.object({
   measurements: z.record(z.any()),
   environmentalConditions: z.record(z.any()),
-  standardsUsed: z.record(z.any()),
-  templateId: z.string().cuid()
+  standardsUsed: z.record(z.any())
+})
+
+const rescheduleCalibrationSchema = z.object({
+  scheduledDate: z.date(),
+  dueDate: z.date(),
+  notes: z.string().optional()
+})
+
+const cancelCalibrationSchema = z.object({
+  notes: z.string().optional()
 })
 
 export class CalibrationController {
   /**
-   * Get all calibrations for a laboratory
+   * Get all calibrations with pagination and filtering
    */
   async getCalibrations(req: Request, res: Response) {
     try {
       const { laboratoryId } = req.user as any
-      const { status, equipmentId, page = 1, limit = 20 } = req.query
+      const { page = 1, limit = 20, status, equipmentId } = req.query
 
       const where: any = {
-        equipment: {
-          laboratoryId: laboratoryId
-        },
+        laboratoryId: laboratoryId,
         deletedAt: null
       }
 
@@ -73,14 +100,14 @@ export class CalibrationController {
                 name: true,
                 model: true,
                 serialNumber: true,
-                equipmentType: true,
-                location: true
+                equipmentType: true
               }
             },
-            performedBy: {
+            user: {
               select: {
                 id: true,
-                name: true,
+                firstName: true,
+                lastName: true,
                 email: true
               }
             },
@@ -88,13 +115,11 @@ export class CalibrationController {
               select: {
                 id: true,
                 name: true,
-                category: true
+                description: true
               }
             }
           },
-          orderBy: {
-            scheduledDate: 'desc'
-          },
+          orderBy: { createdAt: 'desc' },
           skip: (Number(page) - 1) * Number(limit),
           take: Number(limit)
         }),
@@ -110,396 +135,66 @@ export class CalibrationController {
           pages: Math.ceil(total / Number(limit))
         }
       })
-
     } catch (error) {
       logger.error('Failed to get calibrations:', error)
-      res.status(500).json({ error: 'Failed to retrieve calibrations' })
+      throw new ApiError(500, 'Failed to get calibrations')
     }
   }
 
   /**
-   * Get a single calibration by ID
+   * Get calibration statistics
    */
-  async getCalibration(req: Request, res: Response) {
+  async getCalibrationStats(req: Request, res: Response) {
     try {
-      const { id } = req.params
-      const { laboratoryId } = req.user || {}
-
-      const calibration = await prisma.calibrationRecord.findFirst({
-        where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
-          },
-          deletedAt: null
-        },
-        include: {
-          equipment: {
-            select: {
-              id: true,
-              name: true,
-              model: true,
-              serialNumber: true,
-              equipmentType: true,
-              location: true,
-              specifications: true
-            }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          },
-          template: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-              description: true
-            }
-          }
-        }
-      })
-
-      if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
-      }
-
-      return res.json(calibration)
-
-    } catch (error) {
-      logger.error('Failed to get calibration:', error)
-      return res.status(500).json({ error: 'Failed to retrieve calibration' })
-    }
-  }
-
-  /**
-   * Create a new calibration record
-   */
-  async createCalibration(req: Request, res: Response) {
-    try {
-      const { laboratoryId, id: userId } = req.user || {}
-      const validation = createCalibrationSchema.safeParse(req.body)
-
-      if (!validation.success) {
-        return res.status(400).json({ error: 'Invalid input data', details: validation.error })
-      }
-
-      const data = validation.data
-
-      // Verify equipment belongs to laboratory
-      const equipment = await prisma.equipment.findFirst({
-        where: {
-          id: data.equipmentId,
-          laboratoryId: laboratoryId
-        }
-      })
-
-      if (!equipment) {
-        return res.status(404).json({ error: 'Equipment not found' })
-      }
-
-      // Create calibration record
-      const calibration = await prisma.calibrationRecord.create({
-        data: {
-          equipmentId: data.equipmentId,
-          calibrationType: data.calibrationType,
-          scheduledDate: new Date(data.scheduledDate),
-          dueDate: new Date(data.dueDate),
-          templateId: data.templateId,
-          notes: data.notes,
-          performedById: data.assignedToId || userId,
-          status: 'SCHEDULED'
-        },
-        include: {
-          equipment: {
-            select: {
-              id: true,
-              name: true,
-              model: true,
-              serialNumber: true
-            }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          }
-        }
-      })
-
-      logger.info(`Created calibration ${calibration.id} for equipment ${data.equipmentId}`)
-      res.status(201).json(calibration)
-
-    } catch (error) {
-      logger.error('Failed to create calibration:', error)
-      res.status(500).json({ error: 'Failed to create calibration' })
-    }
-  }
-
-  /**
-   * Update calibration record
-   */
-  async updateCalibration(req: Request, res: Response) {
-    try {
-      const { id } = req.params
-      const { laboratoryId } = req.user as any
-      const validation = updateCalibrationSchema.safeParse(req.body)
-
-      if (!validation.success) {
-        return res.status(400).json({ error: 'Invalid input data', details: validation.error })
-      }
-
-      const data = validation.data
-
-      // Verify calibration belongs to laboratory
-      const existingCalibration = await prisma.calibrationRecord.findFirst({
-        where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
-          }
-        }
-      })
-
-      if (!existingCalibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
-      }
-
-      // Update calibration
-      const calibration = await prisma.calibrationRecord.update({
-        where: { id },
-        data: {
-          ...data,
-          performedDate: data.performedDate ? new Date(data.performedDate) : undefined,
-          updatedAt: new Date()
-        },
-        include: {
-          equipment: {
-            select: {
-              id: true,
-              name: true,
-              model: true,
-              serialNumber: true
-            }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
-          }
-        }
-      })
-
-      logger.info(`Updated calibration ${id}`)
-      res.json(calibration)
-
-    } catch (error) {
-      logger.error('Failed to update calibration:', error)
-      res.status(500).json({ error: 'Failed to update calibration' })
-    }
-  }
-
-  /**
-   * Start calibration workflow
-   */
-  async startCalibration(req: Request, res: Response) {
-    try {
-      const { id } = req.params
       const { laboratoryId } = req.user as any
 
-      const calibration = await prisma.calibrationRecord.findFirst({
-        where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
+      const [total, pending, inProgress, completed, overdue] = await Promise.all([
+        prisma.calibrationRecord.count({
+          where: {
+            laboratoryId: laboratoryId,
+            deletedAt: null
           }
-        },
-        include: {
-          equipment: true,
-          template: true
-        }
-      })
-
-      if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
-      }
-
-      if (calibration.status !== 'SCHEDULED') {
-        return res.status(400).json({ error: 'Calibration cannot be started - invalid status' })
-      }
-
-      // Update status to IN_PROGRESS
-      const updatedCalibration = await prisma.calibrationRecord.update({
-        where: { id },
-        data: {
-          status: 'IN_PROGRESS',
-          performedDate: new Date(),
-          updatedAt: new Date()
-        },
-        include: {
-          equipment: true,
-          template: true
-        }
-      })
-
-      logger.info(`Started calibration ${id}`)
-      res.json(updatedCalibration)
-
-    } catch (error) {
-      logger.error('Failed to start calibration:', error)
-      res.status(500).json({ error: 'Failed to start calibration' })
-    }
-  }
-
-  /**
-   * Complete calibration workflow
-   */
-  async completeCalibration(req: Request, res: Response) {
-    try {
-      const { id } = req.params
-      const { laboratoryId, id: userId } = req.user as any
-      const validation = updateCalibrationSchema.safeParse(req.body)
-
-      if (!validation.success) {
-        return res.status(400).json({ error: 'Invalid input data', details: validation.error })
-      }
-
-      const data = validation.data
-
-      const calibration = await prisma.calibrationRecord.findFirst({
-        where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
+        }),
+        prisma.calibrationRecord.count({
+          where: {
+            laboratoryId: laboratoryId,
+            status: 'PENDING',
+            deletedAt: null
           }
-        },
-        include: {
-          equipment: true,
-          template: true
-        }
-      })
-
-      if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
-      }
-
-      if (calibration.status !== 'IN_PROGRESS') {
-        return res.status(400).json({ error: 'Calibration cannot be completed - invalid status' })
-      }
-
-      // Update calibration with completion data
-      const updatedCalibration = await prisma.calibrationRecord.update({
-        where: { id },
-        data: {
-          ...data,
-          status: 'COMPLETED',
-          performedDate: new Date(),
-          performedById: userId,
-          updatedAt: new Date()
-        },
-        include: {
-          equipment: true,
-          performedBy: true,
-          template: true
-        }
-      })
-
-      logger.info(`Completed calibration ${id}`)
-      res.json(updatedCalibration)
-
-    } catch (error) {
-      logger.error('Failed to complete calibration:', error)
-      res.status(500).json({ error: 'Failed to complete calibration' })
-    }
-  }
-
-  /**
-   * Run AI validation for calibration
-   */
-  async validateCalibration(req: Request, res: Response) {
-    try {
-      const { id } = req.params
-      const { laboratoryId, id: userId } = req.user as any
-      const validation = aiValidationSchema.safeParse(req.body)
-
-      if (!validation.success) {
-        return res.status(400).json({ error: 'Invalid input data', details: validation.error })
-      }
-
-      const data = validation.data
-
-      // Get calibration record
-      const calibration = await prisma.calibrationRecord.findFirst({
-        where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
+        }),
+        prisma.calibrationRecord.count({
+          where: {
+            laboratoryId: laboratoryId,
+            status: 'IN_PROGRESS',
+            deletedAt: null
           }
-        },
-        include: {
-          equipment: true,
-          template: true
-        }
-      })
+        }),
+        prisma.calibrationRecord.count({
+          where: {
+            laboratoryId: laboratoryId,
+            status: 'COMPLETED',
+            deletedAt: null
+          }
+        }),
+        prisma.calibrationRecord.count({
+          where: {
+            laboratoryId: laboratoryId,
+            status: 'OVERDUE',
+            deletedAt: null
+          }
+        })
+      ])
 
-      if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
-      }
-
-      // Run AI validation
-      const aiResult = await aiService.validateCalibration({
-        equipmentId: calibration.equipmentId,
-        templateId: data.templateId,
-        measurements: data.measurements,
-        environmentalConditions: data.environmentalConditions,
-        standardsUsed: data.standardsUsed,
-        userId,
-        laboratoryId
-      })
-
-      // Update calibration with AI results
-      const updatedCalibration = await prisma.calibrationRecord.update({
-        where: { id },
-        data: {
-          complianceStatus: aiResult.status,
-          complianceScore: aiResult.complianceScore,
-          deviations: aiResult.deviations,
-          correctiveActions: aiResult.correctiveActions,
-          aiAnalysis: {
-            status: aiResult.status,
-            complianceScore: aiResult.complianceScore,
-            performanceSummary: aiResult.performanceSummary,
-            correctiveActions: aiResult.correctiveActions,
-            nextVerificationDue: aiResult.nextVerificationDue,
-            deviations: aiResult.deviations,
-            recommendations: aiResult.recommendations,
-            confidence: aiResult.confidence
-          },
-          updatedAt: new Date()
-        },
-        include: {
-          equipment: true,
-          performedBy: true,
-          template: true
-        }
-      })
-
-      logger.info(`AI validation completed for calibration ${id}: ${aiResult.status}`)
       res.json({
-        calibration: updatedCalibration,
-        aiResult
+        total,
+        pending,
+        inProgress,
+        completed,
+        overdue
       })
-
     } catch (error) {
-      logger.error('Failed to validate calibration:', error)
-      res.status(500).json({ error: 'Failed to validate calibration' })
+      logger.error('Failed to get calibration stats:', error)
+      throw new ApiError(500, 'Failed to get calibration statistics')
     }
   }
 
@@ -516,15 +211,11 @@ export class CalibrationController {
 
       const calibrations = await prisma.calibrationRecord.findMany({
         where: {
-          equipment: {
-            laboratoryId: laboratoryId
-          },
+          laboratoryId: laboratoryId,
           dueDate: {
             lte: dueDate
           },
-          status: {
-            in: ['SCHEDULED', 'IN_PROGRESS']
-          },
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
           deletedAt: null
         },
         include: {
@@ -533,29 +224,17 @@ export class CalibrationController {
               id: true,
               name: true,
               model: true,
-              serialNumber: true,
-              equipmentType: true,
-              location: true
-            }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
+              serialNumber: true
             }
           }
         },
-        orderBy: {
-          dueDate: 'asc'
-        }
+        orderBy: { dueDate: 'asc' }
       })
 
       res.json(calibrations)
-
     } catch (error) {
       logger.error('Failed to get due calibrations:', error)
-      res.status(500).json({ error: 'Failed to retrieve due calibrations' })
+      throw new ApiError(500, 'Failed to get due calibrations')
     }
   }
 
@@ -568,15 +247,11 @@ export class CalibrationController {
 
       const calibrations = await prisma.calibrationRecord.findMany({
         where: {
-          equipment: {
-            laboratoryId: laboratoryId
-          },
+          laboratoryId: laboratoryId,
           dueDate: {
             lt: new Date()
           },
-          status: {
-            in: ['SCHEDULED', 'IN_PROGRESS']
-          },
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
           deletedAt: null
         },
         include: {
@@ -585,29 +260,437 @@ export class CalibrationController {
               id: true,
               name: true,
               model: true,
-              serialNumber: true,
-              equipmentType: true,
-              location: true
-            }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
+              serialNumber: true
             }
           }
         },
-        orderBy: {
-          dueDate: 'asc'
-        }
+        orderBy: { dueDate: 'asc' }
       })
 
       res.json(calibrations)
-
     } catch (error) {
       logger.error('Failed to get overdue calibrations:', error)
-      res.status(500).json({ error: 'Failed to retrieve overdue calibrations' })
+      throw new ApiError(500, 'Failed to get overdue calibrations')
+    }
+  }
+
+  /**
+   * Get single calibration
+   */
+  async getCalibration(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { laboratoryId } = req.user as any
+
+      const calibration = await prisma.calibrationRecord.findFirst({
+        where: {
+          id: id,
+          laboratoryId: laboratoryId
+        },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              name: true,
+              model: true,
+              serialNumber: true,
+              equipmentType: true
+            }
+          },
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          template: {
+            select: {
+              id: true,
+              name: true,
+              description: true
+            }
+          }
+        }
+      })
+
+      if (!calibration) {
+        throw new ApiError(404, 'Calibration not found')
+      }
+
+      res.json(calibration)
+    } catch (error) {
+      logger.error('Failed to get calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to get calibration')
+    }
+  }
+
+  /**
+   * Create new calibration
+   */
+  async createCalibration(req: Request, res: Response) {
+    try {
+      const { laboratoryId } = req.user as any
+      const validatedData = createCalibrationSchema.parse(req.body)
+
+      // Verify equipment belongs to laboratory
+      const equipment = await prisma.equipment.findFirst({
+        where: {
+          id: validatedData.equipmentId,
+          laboratoryId: laboratoryId
+        }
+      })
+
+      if (!equipment) {
+        throw new ApiError(404, 'Equipment not found')
+      }
+
+      // Verify template if provided
+      if (validatedData.templateId) {
+        const template = await prisma.complianceTemplate.findFirst({
+          where: {
+            id: validatedData.templateId,
+            laboratoryId: laboratoryId
+          }
+        })
+
+        if (!template) {
+          throw new ApiError(404, 'Template not found')
+        }
+      }
+
+      const calibration = await prisma.calibrationRecord.create({
+        data: {
+          equipmentId: validatedData.equipmentId,
+          userId: (req.user as any).userId,
+          laboratoryId: laboratoryId,
+          calibrationDate: validatedData.calibrationDate,
+          dueDate: validatedData.dueDate,
+          scheduledDate: validatedData.scheduledDate,
+          method: validatedData.method,
+          standardUsed: validatedData.standardUsed,
+          temperature: validatedData.temperature,
+          humidity: validatedData.humidity,
+          pressure: validatedData.pressure,
+          templateId: validatedData.templateId,
+          notes: validatedData.notes
+        },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              name: true,
+              model: true,
+              serialNumber: true
+            }
+          }
+        }
+      })
+
+      logger.info('Calibration created', {
+        calibrationId: calibration.id,
+        equipmentId: validatedData.equipmentId,
+        laboratoryId: laboratoryId
+      })
+
+      res.status(201).json({
+        message: 'Calibration created successfully',
+        calibration
+      })
+    } catch (error) {
+      logger.error('Failed to create calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to create calibration')
+    }
+  }
+
+  /**
+   * Update calibration
+   */
+  async updateCalibration(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { laboratoryId } = req.user as any
+      const validatedData = updateCalibrationSchema.parse(req.body)
+
+      const calibration = await prisma.calibrationRecord.findFirst({
+        where: {
+          id: id,
+          laboratoryId: laboratoryId
+        }
+      })
+
+      if (!calibration) {
+        throw new ApiError(404, 'Calibration not found')
+      }
+
+      // Verify equipment if being updated
+      if (validatedData.equipmentId) {
+        const equipment = await prisma.equipment.findFirst({
+          where: {
+            id: validatedData.equipmentId,
+            laboratoryId: laboratoryId
+          }
+        })
+
+        if (!equipment) {
+          throw new ApiError(404, 'Equipment not found')
+        }
+      }
+
+      // Verify template if being updated
+      if (validatedData.templateId) {
+        const template = await prisma.complianceTemplate.findFirst({
+          where: {
+            id: validatedData.templateId,
+            laboratoryId: laboratoryId
+          }
+        })
+
+        if (!template) {
+          throw new ApiError(404, 'Template not found')
+        }
+      }
+
+      const updatedCalibration = await prisma.calibrationRecord.update({
+        where: { id: id },
+        data: {
+          equipmentId: validatedData.equipmentId,
+          calibrationDate: validatedData.calibrationDate,
+          dueDate: validatedData.dueDate,
+          scheduledDate: validatedData.scheduledDate,
+          method: validatedData.method,
+          standardUsed: validatedData.standardUsed,
+          temperature: validatedData.temperature,
+          humidity: validatedData.humidity,
+          pressure: validatedData.pressure,
+          templateId: validatedData.templateId,
+          notes: validatedData.notes
+        },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              name: true,
+              model: true,
+              serialNumber: true
+            }
+          }
+        }
+      })
+
+      logger.info('Calibration updated', {
+        calibrationId: id,
+        laboratoryId: laboratoryId
+      })
+
+      res.json({
+        message: 'Calibration updated successfully',
+        calibration: updatedCalibration
+      })
+    } catch (error) {
+      logger.error('Failed to update calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to update calibration')
+    }
+  }
+
+  /**
+   * Start calibration workflow
+   */
+  async startCalibration(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { laboratoryId } = req.user as any
+
+      const calibration = await prisma.calibrationRecord.findFirst({
+        where: {
+          id: id,
+          laboratoryId: laboratoryId,
+          status: { in: ['PENDING'] }
+        }
+      })
+
+      if (!calibration) {
+        throw new ApiError(404, 'Calibration not found or cannot be started')
+      }
+
+      const updatedCalibration = await prisma.calibrationRecord.update({
+        where: { id: id },
+        data: {
+          status: 'IN_PROGRESS',
+          performedDate: new Date()
+        },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              name: true,
+              model: true,
+              serialNumber: true
+            }
+          }
+        }
+      })
+
+      logger.info('Calibration started', {
+        calibrationId: id,
+        laboratoryId: laboratoryId
+      })
+
+      res.json({
+        message: 'Calibration started successfully',
+        calibration: updatedCalibration
+      })
+    } catch (error) {
+      logger.error('Failed to start calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to start calibration')
+    }
+  }
+
+  /**
+   * Complete calibration workflow
+   */
+  async completeCalibration(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { laboratoryId } = req.user as any
+      const validatedData = completeCalibrationSchema.parse(req.body)
+
+      const calibration = await prisma.calibrationRecord.findFirst({
+        where: {
+          id: id,
+          laboratoryId: laboratoryId,
+          status: { in: ['IN_PROGRESS'] }
+        }
+      })
+
+      if (!calibration) {
+        throw new ApiError(404, 'Calibration not found or cannot be completed')
+      }
+
+      const updatedCalibration = await prisma.calibrationRecord.update({
+        where: { id: id },
+        data: {
+          status: 'COMPLETED',
+          result: validatedData.result,
+          complianceStatus: validatedData.complianceStatus,
+          accuracy: validatedData.accuracy,
+          precision: validatedData.precision,
+          linearity: validatedData.linearity,
+          repeatability: validatedData.repeatability,
+          sensitivity: validatedData.sensitivity,
+          isCompliant: validatedData.isCompliant,
+          complianceScore: validatedData.complianceScore,
+          validationNotes: validatedData.validationNotes,
+          notes: validatedData.notes,
+          deviations: validatedData.deviations,
+          correctiveActions: validatedData.correctiveActions
+        },
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              name: true,
+              model: true,
+              serialNumber: true
+            }
+          }
+        }
+      })
+
+      // Update equipment last calibration date
+      await prisma.equipment.update({
+        where: { id: calibration.equipmentId },
+        data: {
+          lastCalibratedAt: new Date()
+        }
+      })
+
+      logger.info('Calibration completed', {
+        calibrationId: id,
+        result: validatedData.result,
+        laboratoryId: laboratoryId
+      })
+
+      res.json({
+        message: 'Calibration completed successfully',
+        calibration: updatedCalibration
+      })
+    } catch (error) {
+      logger.error('Failed to complete calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to complete calibration')
+    }
+  }
+
+  /**
+   * Run AI validation
+   */
+  async validateCalibration(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { laboratoryId } = req.user as any
+      const validatedData = validateCalibrationSchema.parse(req.body)
+
+      const calibration = await prisma.calibrationRecord.findFirst({
+        where: {
+          id: id,
+          laboratoryId: laboratoryId
+        },
+        include: {
+          equipment: true,
+          template: true
+        }
+      })
+
+      if (!calibration) {
+        throw new ApiError(404, 'Calibration not found')
+      }
+
+      // Call AI validation service
+      const aiValidation = await aiService.validateCalibration({
+        equipmentId: calibration.equipmentId,
+        templateId: calibration.templateId || '',
+        measurements: validatedData.measurements,
+        environmentalConditions: validatedData.environmentalConditions,
+        standardsUsed: validatedData.standardsUsed,
+        userId: (req.user as any).userId,
+        laboratoryId: laboratoryId
+      })
+
+      // Update calibration with AI validation results
+      const updatedCalibration = await prisma.calibrationRecord.update({
+        where: { id: id },
+        data: {
+          aiValidation: JSON.parse(JSON.stringify(aiValidation)),
+          aiValidationResult: JSON.parse(JSON.stringify(aiValidation)),
+          complianceScore: aiValidation.complianceScore,
+          isCompliant: aiValidation.status === 'PASS',
+          validationNotes: aiValidation.performanceSummary,
+          deviations: aiValidation.deviations,
+          correctiveActions: aiValidation.correctiveActions
+        }
+      })
+
+      logger.info('Calibration validated with AI', {
+        calibrationId: id,
+        complianceScore: aiValidation.complianceScore,
+        laboratoryId: laboratoryId
+      })
+
+      res.json({
+        message: 'Calibration validated successfully',
+        calibration: updatedCalibration,
+        aiValidation: aiValidation
+      })
+    } catch (error) {
+      logger.error('Failed to validate calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to validate calibration')
     }
   }
 
@@ -618,33 +701,26 @@ export class CalibrationController {
     try {
       const { id } = req.params
       const { laboratoryId } = req.user as any
-      const { scheduledDate, dueDate, notes } = req.body
-
-      if (!scheduledDate || !dueDate) {
-        return res.status(400).json({ error: 'Scheduled date and due date are required' })
-      }
+      const validatedData = rescheduleCalibrationSchema.parse(req.body)
 
       const calibration = await prisma.calibrationRecord.findFirst({
         where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
-          }
+          id: id,
+          laboratoryId: laboratoryId,
+          status: { in: ['PENDING', 'IN_PROGRESS'] }
         }
       })
 
       if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
+        throw new ApiError(404, 'Calibration not found or cannot be rescheduled')
       }
 
       const updatedCalibration = await prisma.calibrationRecord.update({
-        where: { id },
+        where: { id: id },
         data: {
-          scheduledDate: new Date(scheduledDate),
-          dueDate: new Date(dueDate),
-          notes: notes || calibration.notes,
-          status: 'SCHEDULED',
-          updatedAt: new Date()
+          scheduledDate: validatedData.scheduledDate,
+          dueDate: validatedData.dueDate,
+          notes: validatedData.notes
         },
         include: {
           equipment: {
@@ -654,23 +730,24 @@ export class CalibrationController {
               model: true,
               serialNumber: true
             }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
           }
         }
       })
 
-      logger.info(`Rescheduled calibration ${id}`)
-      res.json(updatedCalibration)
+      logger.info('Calibration rescheduled', {
+        calibrationId: id,
+        newScheduledDate: validatedData.scheduledDate,
+        laboratoryId: laboratoryId
+      })
 
+      res.json({
+        message: 'Calibration rescheduled successfully',
+        calibration: updatedCalibration
+      })
     } catch (error) {
       logger.error('Failed to reschedule calibration:', error)
-      res.status(500).json({ error: 'Failed to reschedule calibration' })
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to reschedule calibration')
     }
   }
 
@@ -681,31 +758,25 @@ export class CalibrationController {
     try {
       const { id } = req.params
       const { laboratoryId } = req.user as any
-      const { reason } = req.body
+      const validatedData = cancelCalibrationSchema.parse(req.body)
 
       const calibration = await prisma.calibrationRecord.findFirst({
         where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
-          }
+          id: id,
+          laboratoryId: laboratoryId,
+          status: { in: ['PENDING', 'IN_PROGRESS'] }
         }
       })
 
       if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
-      }
-
-      if (calibration.status === 'COMPLETED') {
-        return res.status(400).json({ error: 'Cannot cancel completed calibration' })
+        throw new ApiError(404, 'Calibration not found or cannot be cancelled')
       }
 
       const updatedCalibration = await prisma.calibrationRecord.update({
-        where: { id },
+        where: { id: id },
         data: {
           status: 'CANCELLED',
-          notes: reason ? `${calibration.notes || ''}\nCancelled: ${reason}` : calibration.notes,
-          updatedAt: new Date()
+          notes: validatedData.notes
         },
         include: {
           equipment: {
@@ -715,23 +786,23 @@ export class CalibrationController {
               model: true,
               serialNumber: true
             }
-          },
-          performedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true
-            }
           }
         }
       })
 
-      logger.info(`Cancelled calibration ${id}`)
-      res.json(updatedCalibration)
+      logger.info('Calibration cancelled', {
+        calibrationId: id,
+        laboratoryId: laboratoryId
+      })
 
+      res.json({
+        message: 'Calibration cancelled successfully',
+        calibration: updatedCalibration
+      })
     } catch (error) {
       logger.error('Failed to cancel calibration:', error)
-      res.status(500).json({ error: 'Failed to cancel calibration' })
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to cancel calibration')
     }
   }
 
@@ -745,105 +816,32 @@ export class CalibrationController {
 
       const calibration = await prisma.calibrationRecord.findFirst({
         where: {
-          id,
-          equipment: {
-            laboratoryId: laboratoryId
-          }
+          id: id,
+          laboratoryId: laboratoryId
         }
       })
 
       if (!calibration) {
-        return res.status(404).json({ error: 'Calibration not found' })
+        throw new ApiError(404, 'Calibration not found')
       }
 
       await prisma.calibrationRecord.update({
-        where: { id },
+        where: { id: id },
         data: {
           deletedAt: new Date()
         }
       })
 
-      logger.info(`Deleted calibration ${id}`)
-      res.json({ message: 'Calibration deleted successfully' })
-
-    } catch (error) {
-      logger.error('Failed to delete calibration:', error)
-      res.status(500).json({ error: 'Failed to delete calibration' })
-    }
-  }
-
-  /**
-   * Get calibration statistics
-   */
-  async getCalibrationStats(req: Request, res: Response) {
-    try {
-      const { laboratoryId } = req.user as any
-      const { period = 'month' } = req.query
-
-      const now = new Date()
-      const startDate = new Date()
-
-      switch (period) {
-        case 'week':
-          startDate.setDate(now.getDate() - 7)
-          break
-        case 'month':
-          startDate.setMonth(now.getMonth() - 1)
-          break
-        case 'quarter':
-          startDate.setMonth(now.getMonth() - 3)
-          break
-        default:
-          startDate.setMonth(now.getMonth() - 1)
-      }
-
-      const [total, completed, overdue, inProgress] = await Promise.all([
-        prisma.calibrationRecord.count({
-          where: {
-            equipment: { laboratoryId },
-            createdAt: { gte: startDate },
-            deletedAt: null
-          }
-        }),
-        prisma.calibrationRecord.count({
-          where: {
-            equipment: { laboratoryId },
-            status: 'COMPLETED',
-            performedDate: { gte: startDate },
-            deletedAt: null
-          }
-        }),
-        prisma.calibrationRecord.count({
-          where: {
-            equipment: { laboratoryId },
-            dueDate: { lt: now },
-            status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
-            deletedAt: null
-          }
-        }),
-        prisma.calibrationRecord.count({
-          where: {
-            equipment: { laboratoryId },
-            status: 'IN_PROGRESS',
-            deletedAt: null
-          }
-        })
-      ])
-
-      const complianceRate = total > 0 ? (completed / total) * 100 : 0
-
-      res.json({
-        period,
-        total,
-        completed,
-        overdue,
-        inProgress,
-        complianceRate: Math.round(complianceRate * 100) / 100
+      logger.info('Calibration deleted', {
+        calibrationId: id,
+        laboratoryId: laboratoryId
       })
 
+      res.json({ message: 'Calibration deleted successfully' })
     } catch (error) {
-      logger.error('Failed to get calibration stats:', error)
-      res.status(500).json({ error: 'Failed to retrieve calibration statistics' })
+      logger.error('Failed to delete calibration:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to delete calibration')
     }
   }
 }

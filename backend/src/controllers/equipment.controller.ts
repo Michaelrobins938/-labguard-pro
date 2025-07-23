@@ -1,21 +1,55 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
-import { AuthenticatedRequest } from '../middleware/auth.middleware'
-import { equipmentValidation } from '../utils/validators'
-import { ApiError, createApiError } from '../utils/errors'
+import { z } from 'zod'
 import { logger } from '../utils/logger'
+import { ApiError } from '../utils/errors'
 
 const prisma = new PrismaClient()
 
-export const equipmentController = {
-  // GET /api/equipment - List all equipment for laboratory
-  async getEquipment(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+// Validation schemas
+const equipmentCreateSchema = z.object({
+  name: z.string().min(1),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  manufacturer: z.string().optional(),
+  equipmentType: z.enum(['ANALYZER', 'SPECTROMETER', 'MICROSCOPE', 'CENTRIFUGE', 'INCUBATOR', 'REFRIGERATOR', 'FREEZER', 'AUTOCLAVE', 'BALANCE', 'PH_METER', 'THERMOMETER', 'OTHER']),
+  location: z.string().optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'RETIRED']).optional(),
+  accuracy: z.number().optional(),
+  precision: z.number().optional(),
+  specifications: z.any().optional(),
+  notes: z.string().optional(),
+  installDate: z.date().optional(),
+  assignedToId: z.string().cuid().optional()
+})
+
+const equipmentUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  model: z.string().optional(),
+  serialNumber: z.string().optional(),
+  manufacturer: z.string().optional(),
+  equipmentType: z.enum(['ANALYZER', 'SPECTROMETER', 'MICROSCOPE', 'CENTRIFUGE', 'INCUBATOR', 'REFRIGERATOR', 'FREEZER', 'AUTOCLAVE', 'BALANCE', 'PH_METER', 'THERMOMETER', 'OTHER']).optional(),
+  location: z.string().optional(),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'RETIRED']).optional(),
+  accuracy: z.number().optional(),
+  precision: z.number().optional(),
+  specifications: z.any().optional(),
+  notes: z.string().optional(),
+  installDate: z.date().optional(),
+  assignedToId: z.string().cuid().optional()
+})
+
+export class EquipmentController {
+  /**
+   * Get all equipment with pagination and filtering
+   */
+  async getEquipment(req: Request, res: Response) {
     try {
+      const { laboratoryId } = req.user as any
       const { page = 1, limit = 20, status, type, search } = req.query
-      const offset = (Number(page) - 1) * Number(limit)
 
       const where: any = {
-        laboratoryId: req.user.laboratoryId,
+        laboratoryId: laboratoryId,
         deletedAt: null
       }
 
@@ -40,307 +74,296 @@ export const equipmentController = {
         prisma.equipment.findMany({
           where,
           include: {
-            createdBy: {
-              select: { id: true, name: true, email: true }
-            },
-            calibrationRecords: {
-              where: { deletedAt: null },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
+            assignedTo: {
               select: {
                 id: true,
-                status: true,
-                complianceStatus: true,
-                dueDate: true,
-                performedDate: true
+                firstName: true,
+                lastName: true,
+                email: true
               }
             },
-            _count: {
-              select: {
-                calibrationRecords: true,
-                maintenanceRecords: true
-              }
+            maintenanceRecords: {
+              orderBy: { maintenanceDate: 'desc' },
+              take: 5
             }
           },
           orderBy: { createdAt: 'desc' },
-          skip: offset,
+          skip: (Number(page) - 1) * Number(limit),
           take: Number(limit)
         }),
         prisma.equipment.count({ where })
       ])
 
       res.json({
-        data: equipment,
+        equipment,
         pagination: {
-          total,
           page: Number(page),
           limit: Number(limit),
-          totalPages: Math.ceil(total / Number(limit))
+          total,
+          pages: Math.ceil(total / Number(limit))
         }
       })
     } catch (error) {
-      next(error)
+      logger.error('Failed to get equipment:', error)
+      throw new ApiError(500, 'Failed to get equipment')
     }
-  },
+  }
 
-  // GET /api/equipment/:id - Get equipment by ID
-  async getEquipmentById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async getEquipmentById(req: Request, res: Response) {
     try {
       const { id } = req.params
+      const { laboratoryId } = req.user as any
 
       const equipment = await prisma.equipment.findFirst({
         where: {
-          id,
-          laboratoryId: req.user.laboratoryId,
+          id: id,
+          laboratoryId: laboratoryId,
           deletedAt: null
         },
         include: {
-          createdBy: {
-            select: { id: true, name: true, email: true }
+          assignedTo: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
           },
           calibrationRecords: {
             where: { deletedAt: null },
-            orderBy: { createdAt: 'desc' },
-            include: {
-              performedBy: {
-                select: { id: true, name: true, email: true }
-              },
-              template: {
-                select: { id: true, name: true, category: true }
-              }
-            }
+            orderBy: { calibrationDate: 'desc' },
+            take: 10
           },
           maintenanceRecords: {
-            where: { deletedAt: null },
-            orderBy: { createdAt: 'desc' },
-            take: 5
+            orderBy: { maintenanceDate: 'desc' },
+            take: 10
           }
         }
       })
 
       if (!equipment) {
-        throw createApiError.notFound('Equipment not found')
+        throw new ApiError(404, 'Equipment not found')
       }
 
-      res.json({ data: equipment })
+      res.json(equipment)
     } catch (error) {
-      next(error)
+      logger.error('Failed to get equipment by ID:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to get equipment')
     }
-  },
+  }
 
-  // POST /api/equipment - Create new equipment
-  async createEquipment(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async createEquipment(req: Request, res: Response) {
     try {
-      const validatedData = equipmentValidation.create.parse(req.body)
-
-      // Check for duplicate serial number in same laboratory
-      const existingEquipment = await prisma.equipment.findFirst({
-        where: {
-          serialNumber: validatedData.serialNumber,
-          laboratoryId: req.user.laboratoryId,
-          deletedAt: null
-        }
-      })
-
-      if (existingEquipment) {
-        throw createApiError.conflict('Equipment with this serial number already exists')
-      }
+      const { laboratoryId } = req.user as any
+      const validatedData = equipmentCreateSchema.parse(req.body)
 
       const equipment = await prisma.equipment.create({
         data: {
-          ...validatedData,
-          laboratoryId: req.user.laboratoryId,
-          createdById: req.user.id,
-          installDate: validatedData.installDate ? new Date(validatedData.installDate) : null,
-          warrantyExpiry: validatedData.warrantyExpiry ? new Date(validatedData.warrantyExpiry) : null
+          name: validatedData.name,
+          model: validatedData.model,
+          serialNumber: validatedData.serialNumber,
+          manufacturer: validatedData.manufacturer,
+          equipmentType: validatedData.equipmentType,
+          location: validatedData.location,
+          status: validatedData.status || 'ACTIVE',
+          accuracy: validatedData.accuracy,
+          precision: validatedData.precision,
+          specifications: validatedData.specifications,
+          notes: validatedData.notes,
+          installDate: validatedData.installDate,
+          laboratoryId: laboratoryId,
+          assignedToId: validatedData.assignedToId
         },
         include: {
-          createdBy: {
-            select: { id: true, name: true, email: true }
+          assignedTo: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
           }
         }
       })
 
-      logger.info(`Equipment created: ${equipment.id} by user ${req.user.id}`)
+      logger.info('Equipment created', {
+        equipmentId: equipment.id,
+        name: equipment.name,
+        laboratoryId: laboratoryId
+      })
 
       res.status(201).json({
         message: 'Equipment created successfully',
-        data: equipment
+        equipment
       })
     } catch (error) {
-      next(error)
+      logger.error('Failed to create equipment:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to create equipment')
     }
-  },
+  }
 
-  // PUT /api/equipment/:id - Update equipment
-  async updateEquipment(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async updateEquipment(req: Request, res: Response) {
     try {
       const { id } = req.params
-      const validatedData = equipmentValidation.update.parse(req.body)
+      const { laboratoryId } = req.user as any
+      const validatedData = equipmentUpdateSchema.parse(req.body)
 
-      // Check equipment exists and belongs to laboratory
-      const existingEquipment = await prisma.equipment.findFirst({
-        where: {
-          id,
-          laboratoryId: req.user.laboratoryId,
-          deletedAt: null
-        }
-      })
-
-      if (!existingEquipment) {
-        throw createApiError.notFound('Equipment not found')
-      }
-
-      // Check for duplicate serial number if being updated
-      if (validatedData.serialNumber && validatedData.serialNumber !== existingEquipment.serialNumber) {
-        const duplicateCheck = await prisma.equipment.findFirst({
-          where: {
-            serialNumber: validatedData.serialNumber,
-            laboratoryId: req.user.laboratoryId,
-            deletedAt: null,
-            NOT: { id }
-          }
-        })
-
-        if (duplicateCheck) {
-          throw createApiError.conflict('Equipment with this serial number already exists')
-        }
-      }
-
-      const equipment = await prisma.equipment.update({
-        where: { id },
-        data: {
-          ...validatedData,
-          installDate: validatedData.installDate ? new Date(validatedData.installDate) : undefined,
-          warrantyExpiry: validatedData.warrantyExpiry ? new Date(validatedData.warrantyExpiry) : undefined,
-          updatedAt: new Date()
-        },
-        include: {
-          createdBy: {
-            select: { id: true, name: true, email: true }
-          }
-        }
-      })
-
-      logger.info(`Equipment updated: ${equipment.id} by user ${req.user.id}`)
-
-      res.json({
-        message: 'Equipment updated successfully',
-        data: equipment
-      })
-    } catch (error) {
-      next(error)
-    }
-  },
-
-  // DELETE /api/equipment/:id - Soft delete equipment
-  async deleteEquipment(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params
-
-      // Check equipment exists and belongs to laboratory
       const equipment = await prisma.equipment.findFirst({
         where: {
-          id,
-          laboratoryId: req.user.laboratoryId,
+          id: id,
+          laboratoryId: laboratoryId,
           deletedAt: null
         }
       })
 
       if (!equipment) {
-        throw createApiError.notFound('Equipment not found')
+        throw new ApiError(404, 'Equipment not found')
       }
 
-      // Soft delete
-      await prisma.equipment.update({
-        where: { id },
+      // Verify assigned user belongs to laboratory if being updated
+      if (validatedData.assignedToId) {
+        const assignedUser = await prisma.user.findFirst({
+          where: {
+            id: validatedData.assignedToId,
+            laboratoryId: laboratoryId
+          }
+        })
+
+        if (!assignedUser) {
+          throw new ApiError(404, 'Assigned user not found')
+        }
+      }
+
+      const updatedEquipment = await prisma.equipment.update({
+        where: { id: id },
         data: {
-          deletedAt: new Date(),
-          updatedAt: new Date()
+          name: validatedData.name,
+          model: validatedData.model,
+          serialNumber: validatedData.serialNumber,
+          manufacturer: validatedData.manufacturer,
+          equipmentType: validatedData.equipmentType,
+          location: validatedData.location,
+          status: validatedData.status,
+          accuracy: validatedData.accuracy,
+          precision: validatedData.precision,
+          specifications: validatedData.specifications,
+          notes: validatedData.notes,
+          installDate: validatedData.installDate,
+          assignedToId: validatedData.assignedToId
+        },
+        include: {
+          assignedTo: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          }
         }
       })
 
-      logger.info(`Equipment deleted: ${id} by user ${req.user.id}`)
+      logger.info('Equipment updated', {
+        equipmentId: id,
+        laboratoryId: laboratoryId
+      })
 
       res.json({
-        message: 'Equipment deleted successfully'
+        message: 'Equipment updated successfully',
+        equipment: updatedEquipment
       })
     } catch (error) {
-      next(error)
+      logger.error('Failed to update equipment:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to update equipment')
     }
-  },
+  }
 
-  // GET /api/equipment/:id/status - Get equipment compliance status
-  async getEquipmentStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  async deleteEquipment(req: Request, res: Response) {
     try {
       const { id } = req.params
+      const { laboratoryId } = req.user as any
 
       const equipment = await prisma.equipment.findFirst({
         where: {
-          id,
-          laboratoryId: req.user.laboratoryId,
+          id: id,
+          laboratoryId: laboratoryId,
+          deletedAt: null
+        }
+      })
+
+      if (!equipment) {
+        throw new ApiError(404, 'Equipment not found')
+      }
+
+      await prisma.equipment.update({
+        where: { id: id },
+        data: {
+          deletedAt: new Date()
+        }
+      })
+
+      logger.info('Equipment deleted', {
+        equipmentId: id,
+        laboratoryId: laboratoryId
+      })
+
+      res.json({ message: 'Equipment deleted successfully' })
+    } catch (error) {
+      logger.error('Failed to delete equipment:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to delete equipment')
+    }
+  }
+
+  async getEquipmentStatus(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { laboratoryId } = req.user as any
+
+      const equipment = await prisma.equipment.findFirst({
+        where: {
+          id: id,
+          laboratoryId: laboratoryId,
           deletedAt: null
         },
         include: {
           calibrationRecords: {
             where: { deletedAt: null },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { calibrationDate: 'desc' },
+            take: 1
+          },
+          maintenanceRecords: {
+            orderBy: { maintenanceDate: 'desc' },
             take: 1
           }
         }
       })
 
       if (!equipment) {
-        throw createApiError.notFound('Equipment not found')
+        throw new ApiError(404, 'Equipment not found')
       }
 
-      const latestCalibration = equipment.calibrationRecords[0]
-      const now = new Date()
+      const lastCalibration = equipment.calibrationRecords[0]
+      const lastMaintenance = equipment.maintenanceRecords[0]
 
-      let complianceStatus = 'UNKNOWN'
-      let daysSinceLast = null
-      let daysUntilDue = null
-
-      if (latestCalibration) {
-        if (latestCalibration.performedDate) {
-          daysSinceLast = Math.floor((now.getTime() - latestCalibration.performedDate.getTime()) / (1000 * 60 * 60 * 24))
-        }
-        
-        daysUntilDue = Math.floor((latestCalibration.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        
-        if (daysUntilDue < 0) {
-          complianceStatus = 'OVERDUE'
-        } else if (daysUntilDue <= 7) {
-          complianceStatus = 'DUE_SOON'
-        } else if (latestCalibration.complianceStatus === 'COMPLIANT') {
-          complianceStatus = 'COMPLIANT'
-        } else if (latestCalibration.complianceStatus === 'NON_COMPLIANT') {
-          complianceStatus = 'NON_COMPLIANT'
-        } else {
-          complianceStatus = 'PENDING'
-        }
-      } else {
-        complianceStatus = 'NO_CALIBRATION'
+      const status = {
+        equipment,
+        lastCalibration,
+        lastMaintenance,
+        isCalibrationDue: equipment.nextCalibrationAt ? new Date() > equipment.nextCalibrationAt : false,
+        daysUntilCalibration: equipment.nextCalibrationAt ? Math.ceil((equipment.nextCalibrationAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null
       }
 
-      res.json({
-        data: {
-          equipmentId: id,
-          status: equipment.status,
-          complianceStatus,
-          daysSinceLast,
-          daysUntilDue,
-          latestCalibration: latestCalibration ? {
-            id: latestCalibration.id,
-            status: latestCalibration.status,
-            complianceStatus: latestCalibration.complianceStatus,
-            dueDate: latestCalibration.dueDate,
-            performedDate: latestCalibration.performedDate
-          } : null
-        }
-      })
+      res.json(status)
     } catch (error) {
-      next(error)
+      logger.error('Failed to get equipment status:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to get equipment status')
     }
   }
-} 
+}
+
+export const equipmentController = new EquipmentController() 

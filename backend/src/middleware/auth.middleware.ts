@@ -6,80 +6,80 @@ import { ApiError } from '../utils/errors'
 const prisma = new PrismaClient()
 
 export interface AuthenticatedRequest extends Request {
-  user: {
+  user?: {
     id: string
-    email: string
-    role: string
     laboratoryId: string
+    role: string
+    email: string
   }
 }
 
 export const authMiddleware = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new ApiError(401, 'No token provided')
+    const token = req.headers.authorization?.replace('Bearer ', '')
+
+    if (!token) {
+      return res.status(401).json({ error: 'Access token required' })
     }
 
-    const token = authHeader.substring(7)
-    
-    if (!process.env.JWT_SECRET) {
-      throw new ApiError(500, 'JWT secret not configured')
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
-      userId: string
-      email: string
-      role: string
-      laboratoryId: string
-    }
-
-    // Verify user still exists and is active
-    const user = await prisma.user.findFirst({
-      where: {
-        id: decoded.userId,
-        isActive: true,
-        deletedAt: null
-      },
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
       select: {
         id: true,
         email: true,
         role: true,
-        laboratoryId: true
+        laboratoryId: true,
+        isActive: true
       }
     })
 
-    if (!user) {
-      throw new ApiError(401, 'User not found or inactive')
+    if (!user || !user.isActive) {
+      return res.status(401).json({ error: 'Invalid or inactive user' })
     }
 
-    ;(req as AuthenticatedRequest).user = user
-    next()
-  } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ error: 'Invalid token' })
+    req.user = {
+      id: user.id,
+      laboratoryId: user.laboratoryId,
+      role: user.role,
+      email: user.email
     }
-    next(error)
+
+    return next()
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' })
   }
 }
 
 export const requireRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as AuthenticatedRequest).user
-    
-    if (!user || !roles.includes(user.role)) {
-      return res.status(403).json({ 
-        error: 'Insufficient permissions',
-        required: roles,
-        current: user?.role
-      })
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' })
     }
-    
-    next()
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' })
+    }
+
+    return next()
+  }
+}
+
+export const requireLaboratoryAccess = (laboratoryId: string) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    if (req.user.laboratoryId !== laboratoryId) {
+      return res.status(403).json({ error: 'Access denied to this laboratory' })
+    }
+
+    return next()
   }
 } 

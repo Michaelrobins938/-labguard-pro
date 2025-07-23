@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
 import { logger } from '../utils/logger'
-import { ApiError } from '../utils/errors'
-import { Prisma } from '@prisma/client'
 
 export const errorHandler = (
   error: Error,
@@ -14,67 +12,41 @@ export const errorHandler = (
     stack: error.stack,
     url: req.url,
     method: req.method,
-    ip: req.ip,
-    userAgent: req.get('User-Agent')
+    ip: req.ip
   })
 
-  // API Error (custom)
-  if (error instanceof ApiError) {
-    return res.status(error.statusCode).json({
-      error: error.message,
-      code: error.code
-    })
-  }
-
-  // Prisma errors
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    switch (error.code) {
-      case 'P2002':
-        return res.status(409).json({
-          error: 'Record already exists',
-          field: error.meta?.target
-        })
-      case 'P2025':
-        return res.status(404).json({
-          error: 'Record not found'
-        })
-      case 'P2003':
-        return res.status(400).json({
-          error: 'Foreign key constraint failed'
-        })
-      default:
-        return res.status(400).json({
-          error: 'Database operation failed',
-          code: error.code
-        })
-    }
-  }
-
-  // Validation errors
+  // Handle different types of errors
   if (error.name === 'ValidationError') {
     return res.status(400).json({
-      error: 'Validation failed',
-      details: error.message
+      error: 'Validation Error',
+      message: error.message
     })
   }
 
-  // JWT errors
-  if (error.name === 'JsonWebTokenError') {
+  if (error.name === 'UnauthorizedError') {
     return res.status(401).json({
-      error: 'Invalid token'
+      error: 'Unauthorized',
+      message: error.message
     })
   }
 
-  if (error.name === 'TokenExpiredError') {
-    return res.status(401).json({
-      error: 'Token expired'
+  if (error.name === 'ForbiddenError') {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: error.message
     })
   }
 
-  // Default server error
-  res.status(500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : error.message
+  if (error.name === 'NotFoundError') {
+    return res.status(404).json({
+      error: 'Not Found',
+      message: error.message
+    })
+  }
+
+  // Default error response
+  return res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : error.message
   })
 } 

@@ -10,13 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model for lab personnel
+// User and Authentication
 model User {
   id                String   @id @default(cuid())
   email             String   @unique
   password          String
   firstName         String
   lastName          String
+  name              String?  // Computed field for display
+  phone             String?
   role              UserRole @default(TECHNICIAN)
   isActive          Boolean  @default(true)
   emailVerified     Boolean  @default(false)
@@ -34,6 +36,8 @@ model User {
   complianceReports ComplianceReport[]
   notifications     Notification[]
   usageLogs        UsageLog[]
+  auditLogs         AuditLog[]
+  createdEquipment  Equipment[] @relation("EquipmentCreatedBy")
 
   @@map("users")
 }
@@ -45,10 +49,10 @@ model Laboratory {
   description       String?
   address           String?
   phone             String?
-  email             String?
+  email             String   @unique
   website           String?
   isActive          Boolean  @default(true)
-  subscriptionPlan  SubscriptionPlan @default(STARTER)
+  planType          PlanType @default(STARTER)
   trialEndsAt       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -60,6 +64,9 @@ model Laboratory {
   complianceTemplates ComplianceTemplate[]
   complianceReports ComplianceReport[]
   subscriptions    Subscription[]
+  calibrations     CalibrationRecord[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
 
   @@map("laboratories")
 }
@@ -69,7 +76,7 @@ model Equipment {
   id                String   @id @default(cuid())
   name              String
   model             String?
-  serialNumber      String?
+  serialNumber      String?  @unique
   manufacturer      String?
   equipmentType     EquipmentType
   location          String?
@@ -81,6 +88,7 @@ model Equipment {
   precision         Float?
   specifications    Json?
   notes             String?
+  installDate       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   deletedAt         DateTime?
@@ -92,20 +100,39 @@ model Equipment {
   assignedToId      String?
   assignedTo        User? @relation(fields: [assignedToId], references: [id])
   
+  createdById       String?
+  createdBy         User? @relation("EquipmentCreatedBy", fields: [createdById], references: [id])
+  
   calibrationRecords CalibrationRecord[]
   complianceReports ComplianceReport[]
+  maintenanceRecords MaintenanceRecord[]
 
   @@map("equipment")
 }
 
-// Calibration records for equipment validation
+// Calibration Records
 model CalibrationRecord {
-  id                String   @id @default(cuid())
+  id                String              @id @default(cuid())
   equipmentId       String
-  performedById     String
+  equipment         Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  laboratoryId      String
+  laboratory        Laboratory          @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  
+  // Calibration dates
   calibrationDate   DateTime
-  nextCalibrationDate DateTime
-  method            String
+  dueDate           DateTime
+  performedDate     DateTime?
+  scheduledDate     DateTime?
+  
+  // Status and results
+  status            CalibrationStatus  @default(PENDING)
+  result            CalibrationResult  @default(PASS)
+  complianceStatus  String?            // COMPLIANT, NON_COMPLIANT, etc.
+  
+  // Calibration details
+  method            String?
   standardUsed      String?
   temperature       Float?
   humidity          Float?
@@ -119,34 +146,65 @@ model CalibrationRecord {
   sensitivity       Float?
   
   // Compliance status
-  isCompliant       Boolean
-  complianceScore   Float?
-  aiValidationResult Json?
+  isCompliant       Boolean?
+  complianceScore   Float?             // 0-100 compliance score
+  aiValidation      Json?              // AI compliance check results
+  aiValidationResult Json?             // AI validation results
   validationNotes   String?
+  
+  // Additional fields
+  notes             String?
+  deviations        Json?
+  correctiveActions Json?
+  aiAnalysis        Json?
   
   // Report generation
   reportGenerated   Boolean @default(false)
   reportUrl         String?
   
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  // Template relation
+  templateId        String?
+  template          ComplianceTemplate? @relation(fields: [templateId], references: [id])
+  
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   deletedAt         DateTime?
 
-  // Relations
-  equipment         Equipment @relation(fields: [equipmentId], references: [id])
-  performedBy       User @relation(fields: [performedById], references: [id])
-
   @@map("calibration_records")
+}
+
+// Maintenance Records
+model MaintenanceRecord {
+  id                String              @id @default(cuid())
+  equipmentId       String
+  equipment         Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  maintenanceDate   DateTime
+  type              MaintenanceType
+  description       String
+  performedBy       String?
+  cost              Float?
+  status            MaintenanceStatus  @default(COMPLETED)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@map("maintenance_records")
 }
 
 // Compliance templates for AI prompts
 model ComplianceTemplate {
   id                String   @id @default(cuid())
-  name              String
+  title             String
+  name              String?
   description       String?
+  category          TemplateCategory?
   equipmentType     EquipmentType
   template          String // AI prompt template
+  promptTemplate    String? // Alternative field name
   variables         Json? // Template variables
+  useCase           String?
+  safetyChecks      String[] // Array of safety check names
+  validationCriteria Json?
+  regulatoryStandards String[] // Array of regulatory standards
   isActive          Boolean @default(true)
   version           String @default("1.0.0")
   createdAt         DateTime @default(now())
@@ -156,8 +214,43 @@ model ComplianceTemplate {
   // Relations
   laboratoryId      String?
   laboratory        Laboratory? @relation(fields: [laboratoryId], references: [id])
+  calibrationRecords CalibrationRecord[]
+  usageRecords      TemplateUsage[]
 
   @@map("compliance_templates")
+}
+
+// Template usage tracking
+model TemplateUsage {
+  id                String   @id @default(cuid())
+  templateId        String
+  template          ComplianceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId            String
+  laboratoryId      String
+  query             String
+  result            Json?
+  executionTime     Int?     // milliseconds
+  cost              Float?
+  quantity          Int?      // Token count
+  createdAt         DateTime @default(now())
+
+  @@map("template_usage")
+}
+
+// Usage logs for tracking
+model UsageLog {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User @relation(fields: [userId], references: [id])
+  laboratoryId      String
+  action            String
+  resource          String
+  quantity          Int?
+  cost              Float?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  @@map("usage_logs")
 }
 
 // Compliance reports generated by AI
@@ -199,88 +292,123 @@ model ComplianceReport {
 // Subscription management
 model Subscription {
   id                String   @id @default(cuid())
-  laboratoryId      String
-  plan              SubscriptionPlan
+  laboratoryId      String   @unique
+  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  planId            String
+  plan              SubscriptionPlan @relation(fields: [planId], references: [id])
+  stripeId          String?  @unique
+  stripeCustomerId  String?
   status            SubscriptionStatus @default(ACTIVE)
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
-  cancelAtPeriodEnd Boolean @default(false)
-  canceledAt        DateTime?
-  stripeCustomerId  String?
-  stripeSubscriptionId String?
-  stripePriceId     String?
-  
-  // Usage tracking
-  complianceChecksUsed Int @default(0)
-  complianceChecksLimit Int
-  equipmentItemsUsed Int @default(0)
-  equipmentItemsLimit Int
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  deletedAt         DateTime?
-
-  // Relations
-  laboratory        Laboratory @relation(fields: [laboratoryId], references: [id])
+  trialStart         DateTime?
+  trialEnd           DateTime?
+  cancelAtPeriodEnd  Boolean @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@map("subscriptions")
 }
 
-// Usage tracking for billing
-model UsageLog {
+model SubscriptionPlan {
   id                String   @id @default(cuid())
-  userId            String
-  action            String
-  resource          String?
-  tokensUsed        Int?
-  cost              Float?
-  metadata          Json?
-  createdAt         DateTime @default(now())
-
-  // Relations
-  user              User @relation(fields: [userId], references: [id])
-
-  @@map("usage_logs")
-}
-
-// Notification system
-model Notification {
-  id                String   @id @default(cuid())
-  userId            String
-  type              NotificationType
-  title             String
-  message           String
-  isRead            Boolean @default(false)
-  priority          NotificationPriority @default(MEDIUM)
-  scheduledAt       DateTime?
-  sentAt            DateTime?
-  metadata          Json?
+  name              String   @unique
+  description       String?
+  price             Float
+  currency          String   @default("USD")
+  interval          String   @default("month") // month, year
+  stripeId          String?  @unique
+  equipmentLimit    Int      @default(10)
+  aiChecksLimit     Int      @default(100)
+  teamMembersLimit  Int      @default(5)
+  storageLimit      Int      @default(10) // GB
+  features          Json     // Array of feature names
+  isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   // Relations
-  user              User @relation(fields: [userId], references: [id])
+  subscriptions     Subscription[]
+
+  @@map("subscription_plans")
+}
+
+// Notifications
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  laboratoryId String
+  laboratory  Laboratory       @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  metadata    Json?            // Additional data for the notification
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("notifications")
+}
+
+// Audit Logs
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  laboratoryId String
+  laboratory  Laboratory  @relation(fields: [laboratoryId], references: [id], onDelete: Cascade)
+  action      String      // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entity      String      // Equipment, Calibration, User, etc.
+  entityId    String?     // ID of the affected entity
+  details     Json?       // Additional details about the action
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@map("audit_logs")
+}
+
+// Biomni Integration
+model BiomniQuery {
+  id                String   @id @default(cuid())
+  query             String
+  context           String?
+  userId            String
+  laboratoryId      String
+  result            Json?
+  toolsUsed         String[]
+  databasesQueried  String[]
+  confidence        Float?
+  executionTime     Int?     // milliseconds
+  cost              Float?
+  status            QueryStatus @default(EXECUTING)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("biomni_queries")
 }
 
 // Enums
 enum UserRole {
   ADMIN
-  SUPERVISOR
+  MANAGER
   TECHNICIAN
+  USER
 }
 
 enum EquipmentType {
-  ANALYTICAL_BALANCE
-  CENTRIFUGE
+  ANALYZER
+  SPECTROMETER
   MICROSCOPE
-  SPECTROPHOTOMETER
-  PH_METER
+  CENTRIFUGE
   INCUBATOR
-  AUTOCLAVE
   REFRIGERATOR
   FREEZER
+  AUTOCLAVE
+  BALANCE
+  PH_METER
+  THERMOMETER
   OTHER
 }
 
@@ -291,18 +419,47 @@ enum EquipmentStatus {
   RETIRED
 }
 
+enum CalibrationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum CalibrationResult {
+  PASS
+  FAIL
+  CONDITIONAL
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  EMERGENCY
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 enum ReportType {
-  CALIBRATION
   COMPLIANCE
   AUDIT
+  PERFORMANCE
   MAINTENANCE
-  INCIDENT
+  CALIBRATION
 }
 
 enum ReportStatus {
   DRAFT
+  PENDING
+  APPROVED
+  REJECTED
   PUBLISHED
-  ARCHIVED
 }
 
 enum RiskLevel {
@@ -312,7 +469,7 @@ enum RiskLevel {
   CRITICAL
 }
 
-enum SubscriptionPlan {
+enum PlanType {
   STARTER
   PROFESSIONAL
   ENTERPRISE
@@ -322,21 +479,29 @@ enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
   CANCELED
+  TRIALING
   UNPAID
-  TRIAL
 }
 
 enum NotificationType {
   CALIBRATION_DUE
-  COMPLIANCE_FAILURE
-  EQUIPMENT_MAINTENANCE
+  CALIBRATION_OVERDUE
+  MAINTENANCE_DUE
   SYSTEM_ALERT
-  BILLING
+  USER_INVITE
+  SUBSCRIPTION_UPDATE
 }
 
-enum NotificationPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
+enum TemplateCategory {
+  EQUIPMENT_CALIBRATION
+  SAMPLE_HANDLING
+  RESULT_VALIDATION
+  AUDIT_PREPARATION
+}
+
+enum QueryStatus {
+  EXECUTING
+  COMPLETED
+  FAILED
+  CANCELLED
 } 

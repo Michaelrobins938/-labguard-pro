@@ -12,13 +12,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Validation schemas
 const createSubscriptionSchema = z.object({
-  plan: z.enum(['STARTER', 'PROFESSIONAL', 'ENTERPRISE']),
+  planId: z.string().cuid(),
   paymentMethodId: z.string(),
   trialDays: z.number().optional()
 })
 
 const updateSubscriptionSchema = z.object({
-  plan: z.enum(['STARTER', 'PROFESSIONAL', 'ENTERPRISE']).optional(),
+  planId: z.string().cuid().optional(),
   cancelAtPeriodEnd: z.boolean().optional()
 })
 
@@ -31,81 +31,82 @@ export class BillingController {
       const { laboratoryId } = req.user as any
       const validatedData = createSubscriptionSchema.parse(req.body)
 
-      // Get laboratory
-      const laboratory = await prisma.laboratory.findUnique({
-        where: { id: laboratoryId },
-        include: { subscriptions: { where: { status: 'ACTIVE' } } }
+      // Get the plan details
+      const plan = await prisma.subscriptionPlan.findUnique({
+        where: { id: validatedData.planId }
       })
 
-      if (!laboratory) {
-        throw new ApiError(404, 'Laboratory not found')
+      if (!plan) {
+        throw new ApiError(404, 'Plan not found')
       }
 
-      // Check if already has active subscription
-      if (laboratory.subscriptions.length > 0) {
-        throw new ApiError(400, 'Laboratory already has an active subscription')
+      // Check if laboratory already has a subscription
+      const existingSubscription = await prisma.subscription.findFirst({
+        where: { laboratoryId: laboratoryId }
+      })
+
+      if (existingSubscription) {
+        throw new ApiError(400, 'Laboratory already has a subscription')
       }
 
-      // Get plan details
-      const planDetails = this.getPlanDetails(validatedData.plan)
-      
-      // Create Stripe customer
+      // Create Stripe customer if not exists
+      const laboratory = await prisma.laboratory.findUnique({
+        where: { id: laboratoryId }
+      })
+
       const customer = await stripe.customers.create({
-        email: laboratory.email,
-        name: laboratory.name,
+        email: laboratory?.email || 'admin@labguard.com',
         metadata: {
-          laboratoryId: laboratory.id
+          laboratoryId: laboratoryId
         }
       })
+
+      const stripeCustomerId = customer.id
 
       // Create Stripe subscription
-      const subscription = await stripe.subscriptions.create({
-        customer: customer.id,
-        items: [{ price: planDetails.stripePriceId }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
-        trial_period_days: validatedData.trialDays || 14,
+      const stripeSubscription = await stripe.subscriptions.create({
+        customer: stripeCustomerId,
+        items: [{ price: plan.stripeId! }],
+        trial_period_days: validatedData.trialDays,
         metadata: {
-          laboratoryId: laboratory.id,
-          plan: validatedData.plan
+          laboratoryId: laboratoryId,
+          planId: validatedData.planId
         }
       })
 
-      // Create subscription record
-      const subscriptionRecord = await prisma.subscription.create({
+      // Create subscription in database
+      const subscription = await prisma.subscription.create({
         data: {
-          laboratoryId: laboratory.id,
-          plan: validatedData.plan,
-          status: 'TRIAL',
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          stripeCustomerId: customer.id,
-          stripeSubscriptionId: subscription.id,
-          stripePriceId: planDetails.stripePriceId,
-          complianceChecksLimit: planDetails.complianceChecksLimit,
-          equipmentItemsLimit: planDetails.equipmentItemsLimit
+          laboratoryId: laboratoryId,
+          planId: validatedData.planId,
+          stripeId: stripeSubscription.id,
+          stripeCustomerId: stripeCustomerId,
+          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : null,
+          trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null
+        },
+        include: {
+          plan: true,
+          laboratory: {
+            select: {
+              name: true,
+              email: true
+            }
+          }
         }
-      })
-
-      // Update laboratory
-      await prisma.laboratory.update({
-        where: { id: laboratoryId },
-        data: { subscriptionPlan: validatedData.plan }
       })
 
       logger.info('Subscription created', {
-        laboratoryId,
-        subscriptionId: subscriptionRecord.id,
-        plan: validatedData.plan
+        subscriptionId: subscription.id,
+        laboratoryId: laboratoryId,
+        planId: validatedData.planId
       })
 
       res.status(201).json({
         message: 'Subscription created successfully',
-        subscription: subscriptionRecord,
-        stripeSubscription: subscription
+        subscription
       })
-
     } catch (error) {
       logger.error('Failed to create subscription:', error)
       if (error instanceof ApiError) throw error
@@ -118,15 +119,17 @@ export class BillingController {
    */
   async updateSubscription(req: Request, res: Response) {
     try {
+      const { id } = req.params
       const { laboratoryId } = req.user as any
-      const { subscriptionId } = req.params
       const validatedData = updateSubscriptionSchema.parse(req.body)
 
       const subscription = await prisma.subscription.findFirst({
         where: {
-          id: subscriptionId,
-          laboratoryId: laboratoryId,
-          status: { in: ['ACTIVE', 'TRIAL'] }
+          id: id,
+          laboratoryId: laboratoryId
+        },
+        include: {
+          plan: true
         }
       })
 
@@ -134,44 +137,49 @@ export class BillingController {
         throw new ApiError(404, 'Subscription not found')
       }
 
-      // Update Stripe subscription
-      if (validatedData.plan && validatedData.plan !== subscription.plan) {
-        const planDetails = this.getPlanDetails(validatedData.plan)
-        
-        await stripe.subscriptions.update(subscription.stripeSubscriptionId!, {
-          items: [{ price: planDetails.stripePriceId }],
-          proration_behavior: 'create_prorations'
+      // Update plan if requested
+      if (validatedData.planId && validatedData.planId !== subscription.planId) {
+        const newPlan = await prisma.subscriptionPlan.findUnique({
+          where: { id: validatedData.planId }
         })
 
-        // Update local record
-        await prisma.subscription.update({
-          where: { id: subscriptionId },
-          data: {
-            plan: validatedData.plan,
-            complianceChecksLimit: planDetails.complianceChecksLimit,
-            equipmentItemsLimit: planDetails.equipmentItemsLimit
+        if (!newPlan) {
+          throw new ApiError(404, 'Plan not found')
+        }
+
+        // Update Stripe subscription
+        await stripe.subscriptions.update(subscription.stripeId!, {
+          items: [{ id: subscription.stripeId!, price: newPlan.stripeId! }]
+        })
+      }
+
+      // Update subscription in database
+      const updatedSubscription = await prisma.subscription.update({
+        where: { id: id },
+        data: {
+          planId: validatedData.planId,
+          cancelAtPeriodEnd: validatedData.cancelAtPeriodEnd
+        },
+        include: {
+          plan: true,
+          laboratory: {
+            select: {
+              name: true,
+              email: true
+            }
           }
-        })
-      }
+        }
+      })
 
-      if (validatedData.cancelAtPeriodEnd !== undefined) {
-        await stripe.subscriptions.update(subscription.stripeSubscriptionId!, {
-          cancel_at_period_end: validatedData.cancelAtPeriodEnd
-        })
-
-        await prisma.subscription.update({
-          where: { id: subscriptionId },
-          data: { cancelAtPeriodEnd: validatedData.cancelAtPeriodEnd }
-        })
-      }
+      logger.info('Subscription updated', {
+        subscriptionId: id,
+        laboratoryId: laboratoryId
+      })
 
       res.json({
         message: 'Subscription updated successfully',
-        subscription: await prisma.subscription.findUnique({
-          where: { id: subscriptionId }
-        })
+        subscription: updatedSubscription
       })
-
     } catch (error) {
       logger.error('Failed to update subscription:', error)
       if (error instanceof ApiError) throw error
@@ -184,12 +192,12 @@ export class BillingController {
    */
   async cancelSubscription(req: Request, res: Response) {
     try {
+      const { id } = req.params
       const { laboratoryId } = req.user as any
-      const { subscriptionId } = req.params
 
       const subscription = await prisma.subscription.findFirst({
         where: {
-          id: subscriptionId,
+          id: id,
           laboratoryId: laboratoryId
         }
       })
@@ -198,22 +206,37 @@ export class BillingController {
         throw new ApiError(404, 'Subscription not found')
       }
 
-      // Cancel Stripe subscription
-      await stripe.subscriptions.cancel(subscription.stripeSubscriptionId!)
+      // Cancel in Stripe
+      await stripe.subscriptions.update(subscription.stripeId!, {
+        cancel_at_period_end: true
+      })
 
-      // Update local record
-      await prisma.subscription.update({
-        where: { id: subscriptionId },
+      // Update in database
+      const updatedSubscription = await prisma.subscription.update({
+        where: { id: id },
         data: {
-          status: 'CANCELED',
-          canceledAt: new Date()
+          cancelAtPeriodEnd: true
+        },
+        include: {
+          plan: true,
+          laboratory: {
+            select: {
+              name: true,
+              email: true
+            }
+          }
         }
       })
 
-      logger.info('Subscription canceled', { subscriptionId, laboratoryId })
+      logger.info('Subscription cancelled', {
+        subscriptionId: id,
+        laboratoryId: laboratoryId
+      })
 
-      res.json({ message: 'Subscription canceled successfully' })
-
+      res.json({
+        message: 'Subscription cancelled successfully',
+        subscription: updatedSubscription
+      })
     } catch (error) {
       logger.error('Failed to cancel subscription:', error)
       if (error instanceof ApiError) throw error
@@ -227,14 +250,11 @@ export class BillingController {
   async getSubscription(req: Request, res: Response) {
     try {
       const { laboratoryId } = req.user as any
-      const { subscriptionId } = req.params
 
-      const subscription = await prisma.subscription.findFirst({
-        where: {
-          id: subscriptionId,
-          laboratoryId: laboratoryId
-        },
+      const subscription = await prisma.subscription.findUnique({
+        where: { laboratoryId: laboratoryId },
         include: {
+          plan: true,
           laboratory: {
             select: {
               name: true,
@@ -248,17 +268,7 @@ export class BillingController {
         throw new ApiError(404, 'Subscription not found')
       }
 
-      // Get Stripe subscription details
-      let stripeSubscription = null
-      if (subscription.stripeSubscriptionId) {
-        stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId)
-      }
-
-      res.json({
-        subscription,
-        stripeSubscription
-      })
-
+      res.json(subscription)
     } catch (error) {
       logger.error('Failed to get subscription:', error)
       if (error instanceof ApiError) throw error
@@ -284,7 +294,7 @@ export class BillingController {
           },
           select: {
             action: true,
-            tokensUsed: true,
+            quantity: true,
             cost: true,
             createdAt: true
           }
@@ -296,7 +306,7 @@ export class BillingController {
 
       const stats = {
         totalComplianceChecks: usageLogs.filter(log => log.action === 'compliance_check').length,
-        totalTokensUsed: usageLogs.reduce((sum, log) => sum + (log.tokensUsed || 0), 0),
+        totalTokensUsed: usageLogs.reduce((sum, log) => sum + (log.quantity || 0), 0),
         totalCost: usageLogs.reduce((sum, log) => sum + (log.cost || 0), 0),
         equipmentCount,
         period
@@ -307,6 +317,150 @@ export class BillingController {
     } catch (error) {
       logger.error('Failed to get usage stats:', error)
       throw new ApiError(500, 'Failed to get usage statistics')
+    }
+  }
+
+  /**
+   * Get invoices
+   */
+  async getInvoices(req: Request, res: Response) {
+    try {
+      const { laboratoryId } = req.user as any
+
+      const subscription = await prisma.subscription.findUnique({
+        where: { laboratoryId: laboratoryId }
+      })
+
+      if (!subscription) {
+        throw new ApiError(404, 'Subscription not found')
+      }
+
+      const invoices = await stripe.invoices.list({
+        customer: subscription.stripeCustomerId!,
+        limit: 10
+      })
+
+      res.json(invoices.data)
+    } catch (error) {
+      logger.error('Failed to get invoices:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to get invoices')
+    }
+  }
+
+  /**
+   * Get payment methods
+   */
+  async getPaymentMethods(req: Request, res: Response) {
+    try {
+      const { laboratoryId } = req.user as any
+
+      const subscription = await prisma.subscription.findUnique({
+        where: { laboratoryId: laboratoryId }
+      })
+
+      if (!subscription) {
+        throw new ApiError(404, 'Subscription not found')
+      }
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: subscription.stripeCustomerId!,
+        type: 'card'
+      })
+
+      res.json(paymentMethods.data)
+    } catch (error) {
+      logger.error('Failed to get payment methods:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to get payment methods')
+    }
+  }
+
+  /**
+   * Add payment method
+   */
+  async addPaymentMethod(req: Request, res: Response) {
+    try {
+      const { laboratoryId } = req.user as any
+      const { paymentMethodId } = req.body
+
+      const subscription = await prisma.subscription.findUnique({
+        where: { laboratoryId: laboratoryId }
+      })
+
+      if (!subscription) {
+        throw new ApiError(404, 'Subscription not found')
+      }
+
+      // Attach payment method to customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: subscription.stripeCustomerId!
+      })
+
+      // Set as default payment method
+      await stripe.customers.update(subscription.stripeCustomerId!, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId
+        }
+      })
+
+      res.json({ message: 'Payment method added successfully' })
+    } catch (error) {
+      logger.error('Failed to add payment method:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to add payment method')
+    }
+  }
+
+  /**
+   * Get usage
+   */
+  async getUsage(req: Request, res: Response) {
+    try {
+      const { laboratoryId } = req.user as any
+      const { period = 'month' } = req.query
+
+      const now = new Date()
+      const startDate = new Date()
+
+      switch (period) {
+        case 'day':
+          startDate.setDate(now.getDate() - 1)
+          break
+        case 'week':
+          startDate.setDate(now.getDate() - 7)
+          break
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1)
+          break
+      }
+
+      const usage = await prisma.usageLog.groupBy({
+        by: ['action'],
+        where: {
+          laboratoryId: laboratoryId,
+          createdAt: {
+            gte: startDate
+          }
+        },
+        _sum: {
+          quantity: true,
+          cost: true
+        },
+        _count: true
+      })
+
+      res.json({
+        period,
+        totalTokens: usage.reduce((sum: number, record: any) => sum + (record._sum.quantity || 0), 0),
+        totalCost: usage.reduce((sum: number, record: any) => sum + (record._sum.cost || 0), 0),
+        totalRequests: usage.reduce((sum: number, record: any) => sum + record._count, 0),
+        breakdown: usage
+      })
+    } catch (error) {
+      logger.error('Failed to get usage:', error)
+      if (error instanceof ApiError) throw error
+      throw new ApiError(500, 'Failed to get usage')
     }
   }
 
@@ -324,53 +478,36 @@ export class BillingController {
         event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret)
       } catch (err) {
         logger.error('Webhook signature verification failed:', err)
-        return res.status(400).send(`Webhook Error: ${err.message}`)
+        return res.status(400).json({ error: 'Invalid signature' })
       }
 
       switch (event.type) {
         case 'customer.subscription.created':
-          await this.handleSubscriptionCreated(event.data.object as Stripe.Subscription)
-          break
         case 'customer.subscription.updated':
-          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription)
-          break
-        case 'customer.subscription.deleted':
-          await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
+          await this.handleSubscriptionEvent(event.data.object as Stripe.Subscription)
           break
         case 'invoice.payment_succeeded':
-          await this.handlePaymentSucceeded(event.data.object as Stripe.Invoice)
+          await this.handleInvoiceEvent(event.data.object as Stripe.Invoice)
           break
         case 'invoice.payment_failed':
-          await this.handlePaymentFailed(event.data.object as Stripe.Invoice)
+          await this.handlePaymentFailedEvent(event.data.object as Stripe.Invoice)
           break
         default:
           logger.info(`Unhandled event type: ${event.type}`)
       }
 
-      res.json({ received: true })
-
+      return res.json({ received: true })
     } catch (error) {
-      logger.error('Webhook error:', error)
-      res.status(500).json({ error: 'Webhook processing failed' })
+      logger.error('Webhook handler error:', error)
+      return res.status(500).json({ error: 'Webhook handler failed' })
     }
   }
 
-  private async handleSubscriptionCreated(subscription: Stripe.Subscription) {
+  private async handleSubscriptionEvent(subscription: Stripe.Subscription) {
     await prisma.subscription.updateMany({
-      where: { stripeSubscriptionId: subscription.id },
+      where: { stripeId: subscription.id },
       data: {
-        status: subscription.status === 'trialing' ? 'TRIAL' : 'ACTIVE',
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-      }
-    })
-  }
-
-  private async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-    await prisma.subscription.updateMany({
-      where: { stripeSubscriptionId: subscription.id },
-      data: {
-        status: subscription.status === 'active' ? 'ACTIVE' : 'PAST_DUE',
+        status: subscription.status.toUpperCase() as any,
         currentPeriodStart: new Date(subscription.current_period_start * 1000),
         currentPeriodEnd: new Date(subscription.current_period_end * 1000),
         cancelAtPeriodEnd: subscription.cancel_at_period_end
@@ -378,45 +515,61 @@ export class BillingController {
     })
   }
 
-  private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-    await prisma.subscription.updateMany({
-      where: { stripeSubscriptionId: subscription.id },
-      data: {
-        status: 'CANCELED',
-        canceledAt: new Date()
+  private async handleInvoiceEvent(invoice: Stripe.Invoice) {
+    if (invoice.subscription) {
+      const subscription = await prisma.subscription.findFirst({
+        where: { stripeId: invoice.subscription as string }
+      })
+
+      if (subscription) {
+        // Handle successful payment
+        logger.info('Invoice payment succeeded', {
+          invoiceId: invoice.id,
+          subscriptionId: subscription.id,
+          amount: invoice.amount_paid
+        })
       }
-    })
+    }
   }
 
-  private async handlePaymentSucceeded(invoice: Stripe.Invoice) {
-    // Handle successful payment
-    logger.info('Payment succeeded', { invoiceId: invoice.id })
+  private async handlePaymentFailedEvent(invoice: Stripe.Invoice) {
+    if (invoice.subscription) {
+      const subscription = await prisma.subscription.findFirst({
+        where: { stripeId: invoice.subscription as string }
+      })
+
+      if (subscription) {
+        // Handle failed payment
+        logger.warn('Invoice payment failed', {
+          invoiceId: invoice.id,
+          subscriptionId: subscription.id,
+          amount: invoice.amount_due
+        })
+      }
+    }
   }
 
   private async handlePaymentFailed(invoice: Stripe.Invoice) {
-    // Handle failed payment
-    logger.warn('Payment failed', { invoiceId: invoice.id })
-  }
+    if (invoice.subscription) {
+      const subscription = await prisma.subscription.findFirst({
+        where: { stripeId: invoice.subscription as string }
+      })
 
-  private getPlanDetails(plan: string) {
-    const plans = {
-      STARTER: {
-        stripePriceId: process.env.STRIPE_STARTER_PRICE_ID!,
-        complianceChecksLimit: 100,
-        equipmentItemsLimit: 10
-      },
-      PROFESSIONAL: {
-        stripePriceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID!,
-        complianceChecksLimit: 500,
-        equipmentItemsLimit: 50
-      },
-      ENTERPRISE: {
-        stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID!,
-        complianceChecksLimit: -1, // Unlimited
-        equipmentItemsLimit: -1 // Unlimited
+      if (subscription) {
+        // Update subscription status
+        await prisma.subscription.update({
+          where: { id: subscription.id },
+          data: {
+            status: 'PAST_DUE'
+          }
+        })
+
+        logger.warn('Payment failed for subscription', {
+          subscriptionId: subscription.id,
+          invoiceId: invoice.id
+        })
       }
     }
-    return plans[plan as keyof typeof plans]
   }
 
   private getStartDate(period: string): Date {

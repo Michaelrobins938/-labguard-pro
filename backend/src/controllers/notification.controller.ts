@@ -9,7 +9,7 @@ import { ApiError } from '../utils/errors'
 const prisma = new PrismaClient()
 
 // Email transporter
-const emailTransporter = nodemailer.createTransporter({
+const emailTransporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
@@ -28,11 +28,9 @@ const twilioClient = twilio(
 // Validation schemas
 const createNotificationSchema = z.object({
   userId: z.string().cuid(),
-  type: z.enum(['CALIBRATION_DUE', 'COMPLIANCE_FAILURE', 'EQUIPMENT_MAINTENANCE', 'SYSTEM_ALERT', 'BILLING']),
+  type: z.enum(['CALIBRATION_DUE', 'CALIBRATION_OVERDUE', 'MAINTENANCE_DUE', 'SYSTEM_ALERT', 'USER_INVITE', 'SUBSCRIPTION_UPDATE']),
   title: z.string().min(1),
   message: z.string().min(1),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-  scheduledAt: z.string().datetime().optional(),
   metadata: z.record(z.any()).optional()
 })
 
@@ -65,11 +63,10 @@ export class NotificationController {
       const notification = await prisma.notification.create({
         data: {
           userId: validatedData.userId,
+          laboratoryId: (req.user as any).laboratoryId,
           type: validatedData.type,
           title: validatedData.title,
           message: validatedData.message,
-          priority: validatedData.priority || 'MEDIUM',
-          scheduledAt: validatedData.scheduledAt ? new Date(validatedData.scheduledAt) : null,
           metadata: validatedData.metadata
         }
       })
@@ -110,8 +107,7 @@ export class NotificationController {
             select: {
               email: true,
               firstName: true,
-              lastName: true,
-              phone: true
+              lastName: true
             }
           }
         }
@@ -124,12 +120,6 @@ export class NotificationController {
       const results = await Promise.allSettled(
         validatedData.channels.map(channel => this.sendToChannel(channel, notification))
       )
-
-      const sentAt = new Date()
-      await prisma.notification.update({
-        where: { id: notification.id },
-        data: { sentAt }
-      })
 
       const successCount = results.filter(r => r.status === 'fulfilled').length
       const failureCount = results.filter(r => r.status === 'rejected').length
