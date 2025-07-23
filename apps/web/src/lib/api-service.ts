@@ -351,6 +351,10 @@ export const apiService = {
       const response = await apiClient.post(`/api/automation/workflows/${id}/execute`)
       return response.data
     },
+    toggleWorkflow: async (id: string, action: 'start' | 'pause' | 'stop') => {
+      const response = await apiClient.post(`/api/automation/workflows/${id}/toggle`, { action })
+      return response.data
+    },
   },
 
   // Admin endpoints
