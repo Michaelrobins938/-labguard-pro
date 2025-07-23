@@ -11,15 +11,7 @@ const nextConfig = {
     appDir: true,
   },
   trailingSlash: false,
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/dashboard',
-        permanent: false,
-      },
-    ]
-  },
+  // Removed redirect to allow landing page at root
 }
 
 module.exports = nextConfig 
