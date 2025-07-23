@@ -124,6 +124,8 @@ export function BiomniAssistant() {
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
+    console.log('🔄 handleSendMessage called with:', inputValue);
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
@@ -131,14 +133,20 @@ export function BiomniAssistant() {
       timestamp: Date.now()
     };
 
+    console.log('📝 Adding user message:', userMessage);
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setAvatarState('thinking');
 
     try {
+      console.log('🤖 Calling AI services...');
+      
       // Simulate AI response with better error handling
       const context = await contextAnalyzer.getCurrentContext();
+      console.log('📊 Context received:', context);
+      
       const response = await biomniClient.generateResponse(inputValue, context);
+      console.log('💬 AI Response received:', response);
       
       // Determine avatar state based on response content
       let responseAvatarState = 'speaking';
@@ -156,13 +164,15 @@ export function BiomniAssistant() {
         avatarState: responseAvatarState
       };
 
+      console.log('🤖 Adding assistant message:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
       setAvatarState('idle');
     } catch (error) {
-      console.log('Chat error:', error);
+      console.error('❌ Chat error:', error);
       
       // Fallback response if API fails
       const fallbackResponse = getFallbackResponse(inputValue);
+      console.log('🔄 Using fallback response:', fallbackResponse);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -172,6 +182,7 @@ export function BiomniAssistant() {
         avatarState: 'speaking'
       };
 
+      console.log('🤖 Adding fallback message:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
       setAvatarState('idle');
     }
@@ -252,6 +263,22 @@ export function BiomniAssistant() {
               className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1"
             >
               Test Biomni
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                console.log('🧪 Test message button clicked!');
+                setMessages(prev => [...prev, {
+                  id: Date.now().toString(),
+                  type: 'assistant',
+                  content: '🧪 Test message - Basic functionality working! Try typing a message now.',
+                  timestamp: Date.now(),
+                  avatarState: 'excited'
+                }]);
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 ml-2"
+            >
+              Test Message
             </Button>
           </div>
 
@@ -395,8 +422,18 @@ export function BiomniAssistant() {
                   <input
                     type="text"
                     value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onChange={(e) => {
+                      console.log('📝 Input changed:', e.target.value);
+                      setInputValue(e.target.value);
+                    }}
+                    onKeyPress={(e) => {
+                      console.log('⌨️ Key pressed:', e.key);
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        console.log('🚀 Enter pressed, calling handleSendMessage');
+                        handleSendMessage();
+                      }
+                    }}
                     placeholder="Ask about equipment, calibration, compliance..."
                     className="flex-1 bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50"
                   />
@@ -404,13 +441,19 @@ export function BiomniAssistant() {
                     size="icon"
                     variant="ghost"
                     className="h-10 w-10 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl"
-                    onClick={() => setIsListening(!isListening)}
+                    onClick={() => {
+                      console.log('🎤 Voice button clicked');
+                      setIsListening(!isListening);
+                    }}
                   >
                     {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
                   <Button
                     size="icon"
-                    onClick={handleSendMessage}
+                    onClick={() => {
+                      console.log('📤 Send button clicked');
+                      handleSendMessage();
+                    }}
                     disabled={!inputValue.trim()}
                     className="h-10 w-10 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50 rounded-xl"
                   >
