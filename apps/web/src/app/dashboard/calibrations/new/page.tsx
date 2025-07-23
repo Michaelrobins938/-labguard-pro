@@ -370,7 +370,7 @@ export default function NewCalibrationPage() {
                       <div>
                         <h4 className="mobile-text text-white font-medium mb-2">Recommendations</h4>
                         <div className="space-y-2">
-                          {aiInsights.recommendations.map((rec, index) => (
+                          {aiInsights.recommendations.map((rec: string, index: number) => (
                             <div key={index} className="flex items-start space-x-2">
                               <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />
                               <p className="mobile-text text-gray-300">{rec}</p>
@@ -392,7 +392,7 @@ export default function NewCalibrationPage() {
                       <div>
                         <h4 className="mobile-text text-white font-medium mb-2">Required Tools</h4>
                         <div className="flex flex-wrap gap-2">
-                          {aiInsights.requiredTools.map((tool, index) => (
+                          {aiInsights.requiredTools.map((tool: string, index: number) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {tool}
                             </Badge>
@@ -407,7 +407,7 @@ export default function NewCalibrationPage() {
                           <span>Risk Factors</span>
                         </h4>
                         <div className="space-y-1">
-                          {aiInsights.riskFactors.map((risk, index) => (
+                          {aiInsights.riskFactors.map((risk: string, index: number) => (
                             <p key={index} className="mobile-text text-yellow-400 text-sm">{risk}</p>
                           ))}
                         </div>
