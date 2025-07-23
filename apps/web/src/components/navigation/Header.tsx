@@ -11,7 +11,8 @@ import {
   User,
   ChevronDown,
   Zap,
-  HelpCircle
+  HelpCircle,
+  FlaskConical
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -47,9 +48,13 @@ export function Header() {
           <Button 
             size="sm" 
             className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 h-10 px-4 rounded-xl shadow-lg hover:shadow-teal-500/25 transition-all duration-200"
+            onClick={() => {
+              // This will trigger the assistant to appear
+              window.dispatchEvent(new CustomEvent('toggle-assistant'));
+            }}
           >
-            <Zap className="h-4 w-4 mr-2" />
-            AI Assist
+            <FlaskConical className="h-4 w-4 mr-2" />
+            AI Assistant
           </Button>
         </div>
         

@@ -2,6 +2,7 @@
 
 import { Sidebar } from '@/components/navigation/Sidebar'
 import { Header } from '@/components/navigation/Header'
+import { BiomniAssistant } from '@/components/ai-assistant/BiomniAssistant'
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,9 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
+      
+      {/* AI Assistant - Always visible in dashboard */}
+      <BiomniAssistant />
     </div>
   )
 } 

@@ -1,9 +1,27 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 
-const prisma = new PrismaClient()
+// Demo users for testing
+const demoUsers = [
+  {
+    id: '1',
+    email: 'demo@labguard.com',
+    password: 'demo123',
+    name: 'Demo User',
+    role: 'ADMIN',
+    laboratoryId: 'lab-1',
+    laboratoryName: 'Demo Laboratory'
+  },
+  {
+    id: '2', 
+    email: 'admin@labguard.com',
+    password: 'admin123',
+    name: 'Admin User',
+    role: 'ADMIN',
+    laboratoryId: 'lab-1',
+    laboratoryName: 'Demo Laboratory'
+  }
+]
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -18,46 +36,23 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password required')
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email.toLowerCase()
-          },
-          include: {
-            laboratory: true
-          }
-        })
+        // Find demo user
+        const user = demoUsers.find(u => 
+          u.email.toLowerCase() === credentials.email.toLowerCase() &&
+          u.password === credentials.password
+        )
 
-        if (!user || !user.password) {
+        if (!user) {
           throw new Error('Invalid credentials')
         }
-
-        if (!user.isActive || user.deletedAt) {
-          throw new Error('Account is deactivated')
-        }
-
-        if (!user.laboratory?.isActive) {
-          throw new Error('Laboratory account is deactivated')
-        }
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid credentials')
-        }
-
-        // Update last login
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() }
-        })
 
         return {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
+          name: user.name,
           role: user.role,
           laboratoryId: user.laboratoryId,
-          laboratoryName: user.laboratory?.name || ''
+          laboratoryName: user.laboratoryName
         }
       }
     })
@@ -92,5 +87,5 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/login',
     error: '/auth/error'
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || 'labguard-pro-secret-key-2024-development'
 } 

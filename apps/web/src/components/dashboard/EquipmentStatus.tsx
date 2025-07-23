@@ -1,9 +1,9 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/cards'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, StatusBadge, ActionMenu } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { FlaskConical, AlertTriangle, CheckCircle, Clock, MoreVertical, Plus } from 'lucide-react'
+import { FlaskConical, AlertTriangle, CheckCircle, Clock, MoreVertical, Plus, TrendingUp } from 'lucide-react'
 
 const equipment = [
   {
@@ -49,46 +49,80 @@ const equipment = [
     nextCalibration: '2024-01-15',
     location: 'Lab C',
     efficiency: 0
+  },
+  {
+    id: 5,
+    name: 'Microscope #4',
+    type: 'Imaging',
+    status: 'active',
+    compliance: 'compliant',
+    lastCalibration: '2024-01-18',
+    nextCalibration: '2024-02-18',
+    location: 'Lab B',
+    efficiency: 92
+  },
+  {
+    id: 6,
+    name: 'pH Meter #2',
+    type: 'Analytical',
+    status: 'maintenance',
+    compliance: 'due_soon',
+    lastCalibration: '2024-01-12',
+    nextCalibration: '2024-01-27',
+    location: 'Lab A',
+    efficiency: 78
   }
 ]
 
 export function EquipmentStatus() {
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-      case 'maintenance': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
-      case 'inactive': return 'text-gray-400 bg-gray-500/10 border-gray-500/30'
-      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/30'
+      case 'active':
+        return <StatusBadge status="success">Active</StatusBadge>
+      case 'maintenance':
+        return <StatusBadge status="warning">Maintenance</StatusBadge>
+      case 'inactive':
+        return <StatusBadge status="error">Inactive</StatusBadge>
+      default:
+        return <StatusBadge status="info">Unknown</StatusBadge>
     }
   }
 
-  const getComplianceColor = (compliance: string) => {
+  const getComplianceIcon = (compliance: string) => {
     switch (compliance) {
-      case 'compliant': return 'text-emerald-400'
-      case 'due_soon': return 'text-yellow-400'
-      case 'overdue': return 'text-red-400'
-      default: return 'text-gray-400'
+      case 'compliant':
+        return <CheckCircle className="h-4 w-4 text-emerald-500" />
+      case 'due_soon':
+        return <Clock className="h-4 w-4 text-yellow-500" />
+      case 'overdue':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />
     }
+  }
+
+  const getEfficiencyColor = (efficiency: number) => {
+    if (efficiency >= 90) return 'text-emerald-500'
+    if (efficiency >= 70) return 'text-yellow-500'
+    return 'text-red-500'
   }
 
   return (
-    <Card className="glass-card border-0">
-      <CardHeader className="pb-4">
+    <Card variant="glass" className="h-full">
+      <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg">
               <FlaskConical className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-white">Equipment Status</CardTitle>
-              <CardDescription className="text-gray-400">
-                Real-time equipment monitoring
-              </CardDescription>
+              <CardTitle>Equipment Status</CardTitle>
+              <CardDescription>Real-time equipment monitoring and compliance tracking</CardDescription>
             </div>
           </div>
           <Button 
             size="sm" 
-            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 rounded-xl"
+            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Equipment
@@ -96,93 +130,72 @@ export function EquipmentStatus() {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        {equipment.map((item, index) => (
-          <div 
-            key={item.id}
-            className="group p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all duration-200 border border-white/10 hover:border-white/20"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Equipment Icon */}
-                <div className="p-3 rounded-xl bg-gradient-to-br from-teal-400/20 to-cyan-500/20 border border-teal-500/30">
-                  <FlaskConical className="h-5 w-5 text-teal-400" />
-                </div>
-                
-                {/* Equipment Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h4 className="text-sm font-medium text-white truncate">
-                      {item.name}
-                    </h4>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${getStatusColor(item.status)}`}
-                    >
-                      {item.status}
-                    </Badge>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Equipment</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Compliance</TableHead>
+              <TableHead>Efficiency</TableHead>
+              <TableHead>Next Calibration</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {equipment.map((item) => (
+              <TableRow key={item.id} className="hover:bg-white/5">
+                <TableCell>
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gradient-to-br from-teal-500/20 to-cyan-500/20 rounded-lg border border-teal-500/30">
+                      <FlaskConical className="h-4 w-4 text-teal-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-white">{item.name}</div>
+                      <div className="text-sm text-gray-400">{item.location}</div>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-4 text-xs text-gray-400">
-                    <span>{item.type}</span>
-                    <span>•</span>
-                    <span>{item.location}</span>
-                    <span>•</span>
-                    <span className={getComplianceColor(item.compliance)}>
-                      {item.compliance === 'compliant' && <CheckCircle className="h-3 w-3 inline mr-1" />}
-                      {item.compliance === 'due_soon' && <Clock className="h-3 w-3 inline mr-1" />}
-                      {item.compliance === 'overdue' && <AlertTriangle className="h-3 w-3 inline mr-1" />}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-300">{item.type}</span>
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(item.status)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    {getComplianceIcon(item.compliance)}
+                    <span className="text-sm capitalize">
                       {item.compliance.replace('_', ' ')}
                     </span>
                   </div>
-                </div>
-              </div>
-              
-              {/* Efficiency and Actions */}
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-white">{item.efficiency}%</p>
-                  <p className="text-xs text-gray-400">Efficiency</p>
-                </div>
-                
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            {/* Calibration Info */}
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-400">
-                    Last: {new Date(item.lastCalibration).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className={`h-4 w-4 ${getEfficiencyColor(item.efficiency)}`} />
+                    <span className={`font-medium ${getEfficiencyColor(item.efficiency)}`}>
+                      {item.efficiency}%
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-300">
+                    {new Date(item.nextCalibration).toLocaleDateString()}
                   </span>
-                  <span className="text-gray-400">
-                    Next: {new Date(item.nextCalibration).toLocaleDateString()}
-                  </span>
-                </div>
-                
-                {item.compliance === 'overdue' && (
-                  <Button 
-                    size="sm" 
-                    className="bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg"
-                  >
-                    Schedule Now
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+                </TableCell>
+                <TableCell>
+                  <ActionMenu>
+                    <div className="hidden">Menu</div>
+                  </ActionMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         
         {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-4 pt-4 border-t border-white/10">
+        <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
           <div className="text-center">
             <p className="text-2xl font-bold text-white">145</p>
             <p className="text-xs text-gray-400">Total Equipment</p>

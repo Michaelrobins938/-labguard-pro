@@ -2,9 +2,35 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Play, ArrowRight, Shield, Zap, TrendingUp, Award, CheckCircle, AlertTriangle, BarChart3, Database, Upload, Brain, Sparkles } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/cards'
+import { Metric } from '@/components/ui/metrics'
+import { Play, ArrowRight, Shield, Zap, TrendingUp, Award, CheckCircle, AlertTriangle, BarChart3, Database, Upload, Brain, Sparkles, Activity, Clock } from 'lucide-react'
 
 export function HeroSection() {
+  const demoMetrics = [
+    {
+      title: 'Sample Quality',
+      value: 'Excellent',
+      icon: <CheckCircle className="h-5 w-5 text-white" />,
+      description: 'No contamination detected',
+      variant: 'with-icon' as const
+    },
+    {
+      title: 'Equipment Status',
+      value: '142/145',
+      icon: <Activity className="h-5 w-5 text-white" />,
+      description: 'Online and operational',
+      variant: 'with-icon' as const
+    },
+    {
+      title: 'Maintenance Due',
+      value: '7 days',
+      icon: <Clock className="h-5 w-5 text-white" />,
+      description: 'Scheduled calibration',
+      variant: 'with-icon' as const
+    }
+  ]
+
   return (
     <section className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -88,19 +114,18 @@ export function HeroSection() {
               </div>
             </div>
             
-            {/* Right: Interactive Demo Preview */}
+            {/* Right: Enhanced Interactive Demo Preview */}
             <div className="relative">
-              <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/10">
-                <div className="space-y-6">
-                  {/* Demo Header */}
+              <Card variant="glass" className="backdrop-blur-xl border-white/10 shadow-2xl">
+                <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                         <Shield className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-white">Live Demo</h3>
-                        <p className="text-sm text-gray-400">AI Analysis in Action</p>
+                        <CardTitle className="text-white">Live Demo</CardTitle>
+                        <CardDescription className="text-gray-400">AI Analysis in Action</CardDescription>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -108,15 +133,35 @@ export function HeroSection() {
                       <span className="text-sm text-gray-400">Live</span>
                     </div>
                   </div>
-                  
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
                   {/* Upload Area */}
                   <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center">
                     <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h4 className="text-lg font-semibold text-white mb-2">Upload Laboratory Image</h4>
                     <p className="text-gray-400 mb-4">Drag & drop or click to analyze</p>
-                    <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300">
+                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                       Choose File
-                    </button>
+                    </Button>
+                  </div>
+                  
+                  {/* Live Metrics */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-white">Real-time Metrics</h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      {demoMetrics.map((metric) => (
+                        <Metric
+                          key={metric.title}
+                          title={metric.title}
+                          value={metric.value}
+                          icon={metric.icon}
+                          description={metric.description}
+                          variant={metric.variant}
+                          className="bg-white/5 border-white/10"
+                        />
+                      ))}
+                    </div>
                   </div>
                   
                   {/* Analysis Results */}
@@ -146,8 +191,8 @@ export function HeroSection() {
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
