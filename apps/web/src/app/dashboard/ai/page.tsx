@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { 
   Brain, 
   Microscope, 
-  Flask, 
+  Beaker, 
   TestTube, 
   Camera, 
   FileText,
