@@ -14,6 +14,7 @@ import { PricingSection } from '@/components/landing/PricingSection'
 import { FAQSection } from '@/components/landing/FAQSection'
 import { CTASection } from '@/components/landing/CTASection'
 import { Footer } from '@/components/landing/Footer'
+import { BiomniAssistant } from '@/components/ai/BiomniAssistant'
 
 export default function LandingPage() {
   return (
@@ -32,6 +33,7 @@ export default function LandingPage() {
       <FAQSection />
       <CTASection />
       <Footer />
+      <BiomniAssistant />
     </div>
   )
 } 

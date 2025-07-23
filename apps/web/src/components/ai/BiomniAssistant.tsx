@@ -24,7 +24,11 @@ import {
   Zap,
   X,
   Minimize2,
-  Maximize2
+  Maximize2,
+  FlaskConical,
+  Microscope,
+  TestTube,
+  Dna
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -75,7 +79,7 @@ const quickActions: QuickAction[] = [
     label: 'Analyze Image',
     description: 'Upload a lab image for analysis',
     icon: <Camera className="w-5 h-5" />,
-    color: 'bg-blue-500',
+    color: 'bg-teal-500',
     action: () => {}
   },
   {
@@ -83,7 +87,7 @@ const quickActions: QuickAction[] = [
     label: 'Generate Protocol',
     description: 'Create an experimental protocol',
     icon: <FileText className="w-5 h-5" />,
-    color: 'bg-green-500',
+    color: 'bg-emerald-500',
     action: () => {}
   },
   {
@@ -91,7 +95,7 @@ const quickActions: QuickAction[] = [
     label: 'Analyze Data',
     description: 'Process research data',
     icon: <BarChart3 className="w-5 h-5" />,
-    color: 'bg-purple-500',
+    color: 'bg-cyan-500',
     action: () => {}
   },
   {
@@ -99,20 +103,20 @@ const quickActions: QuickAction[] = [
     label: 'Optimize Equipment',
     description: 'Improve equipment performance',
     icon: <Settings className="w-5 h-5" />,
-    color: 'bg-orange-500',
+    color: 'bg-blue-500',
     action: () => {}
   }
 ]
 
 export function BiomniAssistant() {
-  const { data: session } = useSession()
+  const { data: session } = useSession() || { data: null }
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'assistant',
-      content: "Hi! I'm Biomni, your AI laboratory assistant. I can help you with image analysis, protocol generation, data analysis, and equipment optimization. What would you like to work on today?",
+      content: "🧬 Hi! I'm Biomni, your AI laboratory assistant powered by Stanford's Biomni platform. I can help you with image analysis, protocol generation, data analysis, and equipment optimization. What would you like to work on today?",
       timestamp: new Date(),
       actions: [
         {
@@ -120,14 +124,14 @@ export function BiomniAssistant() {
           label: 'Analyze Image',
           icon: <Camera className="w-4 h-4" />,
           action: () => handleQuickAction('analyze-image'),
-          color: 'bg-blue-500'
+          color: 'bg-teal-500'
         },
         {
           id: 'generate-protocol',
           label: 'Generate Protocol',
           icon: <FileText className="w-4 h-4" />,
           action: () => handleQuickAction('generate-protocol'),
-          color: 'bg-green-500'
+          color: 'bg-emerald-500'
         }
       ]
     }
@@ -178,15 +182,15 @@ export function BiomniAssistant() {
     const lowerInput = input.toLowerCase()
     
     if (lowerInput.includes('image') || lowerInput.includes('photo') || lowerInput.includes('picture')) {
-      return "I can help you analyze laboratory images! I can detect sample quality, equipment conditions, culture growth patterns, and contamination. Would you like to upload an image for analysis?"
+      return "🔬 I can help you analyze laboratory images! I can detect sample quality, equipment conditions, culture growth patterns, and contamination. Would you like to upload an image for analysis?"
     } else if (lowerInput.includes('protocol') || lowerInput.includes('experiment')) {
-      return "Great! I can generate experimental protocols for various techniques like PCR, cell culture, sequencing, and more. What type of protocol are you looking for?"
+      return "🧪 Great! I can generate experimental protocols for various techniques like PCR, cell culture, sequencing, and more. What type of protocol are you looking for?"
     } else if (lowerInput.includes('data') || lowerInput.includes('analysis')) {
-      return "I can analyze your research data for trends, anomalies, and insights. What type of data are you working with?"
+      return "📊 I can analyze your research data for trends, anomalies, and insights. What type of data are you working with?"
     } else if (lowerInput.includes('equipment') || lowerInput.includes('calibration')) {
-      return "I can help optimize your laboratory equipment! I can analyze usage patterns, suggest maintenance schedules, and improve performance. What equipment are you working with?"
+      return "⚙️ I can help optimize your laboratory equipment! I can analyze usage patterns, suggest maintenance schedules, and improve performance. What equipment are you working with?"
     } else {
-      return "I'm here to help with your laboratory work! I can assist with image analysis, protocol generation, data analysis, and equipment optimization. What would you like to explore?"
+      return "🧬 I'm here to help with your laboratory work! I can assist with image analysis, protocol generation, data analysis, and equipment optimization. What would you like to explore?"
     }
   }
 
@@ -200,14 +204,14 @@ export function BiomniAssistant() {
           label: 'Upload Image',
           icon: <Camera className="w-4 h-4" />,
           action: () => handleAction('upload-image'),
-          color: 'bg-blue-500'
+          color: 'bg-teal-500'
         },
         {
           id: 'sample-quality',
           label: 'Sample Quality',
           icon: <CheckCircle className="w-4 h-4" />,
           action: () => handleAction('sample-quality'),
-          color: 'bg-green-500'
+          color: 'bg-emerald-500'
         }
       ]
     } else if (lowerInput.includes('protocol')) {
@@ -217,14 +221,14 @@ export function BiomniAssistant() {
           label: 'Cell Culture',
           icon: <FileText className="w-4 h-4" />,
           action: () => handleAction('cell-culture'),
-          color: 'bg-green-500'
+          color: 'bg-emerald-500'
         },
         {
           id: 'pcr-protocol',
           label: 'PCR Protocol',
           icon: <FileText className="w-4 h-4" />,
           action: () => handleAction('pcr-protocol'),
-          color: 'bg-purple-500'
+          color: 'bg-cyan-500'
         }
       ]
     }
@@ -270,12 +274,17 @@ export function BiomniAssistant() {
         <div className="fixed bottom-6 right-6 z-50">
           <Button
             onClick={() => setIsOpen(true)}
-            className="h-16 w-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg"
+            className="h-16 w-16 rounded-full bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 shadow-lg animate-pulse"
           >
-            <Brain className="w-8 h-8" />
+            <FlaskConical className="w-8 h-8" />
           </Button>
           <div className="absolute -top-2 -right-2">
-            <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse"></div>
+          </div>
+          <div className="absolute -bottom-2 -left-2">
+            <Badge className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white text-xs">
+              AI
+            </Badge>
           </div>
         </div>
       )}
@@ -285,17 +294,17 @@ export function BiomniAssistant() {
         <div className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${
           isMinimized ? 'w-80 h-12' : 'w-96 h-[600px]'
         }`}>
-          <Card className="h-full shadow-2xl border-2 border-blue-200">
-            <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4">
+          <Card className="h-full shadow-2xl border-2 border-teal-200 glass-card">
+            <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <Brain className="w-5 h-5 text-blue-600" />
+                    <FlaskConical className="w-5 h-5 text-teal-600" />
                   </div>
                   <div>
                     <CardTitle className="text-white text-lg">Biomni Assistant</CardTitle>
-                    <CardDescription className="text-blue-100">
-                      AI Laboratory Helper
+                    <CardDescription className="text-teal-100">
+                      🧬 AI Laboratory Helper
                     </CardDescription>
                   </div>
                 </div>
@@ -323,7 +332,7 @@ export function BiomniAssistant() {
             {!isMinimized && (
               <CardContent className="p-0 h-full flex flex-col">
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-br from-gray-50 to-blue-50">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -333,15 +342,15 @@ export function BiomniAssistant() {
                         <div className={`flex items-start space-x-2 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}>
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                             message.type === 'user' 
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                              ? 'bg-teal-500 text-white' 
+                              : 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white'
                           }`}>
-                            {message.type === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                            {message.type === 'user' ? <User className="w-4 h-4" /> : <FlaskConical className="w-4 h-4" />}
                           </div>
                           <div className={`rounded-lg p-3 ${
                             message.type === 'user' 
-                              ? 'bg-blue-500 text-white' 
-                              : 'bg-white border border-gray-200'
+                              ? 'bg-teal-500 text-white' 
+                              : 'bg-white border border-teal-200 shadow-sm'
                           }`}>
                             <p className="text-sm">{message.content}</p>
                             {message.actions && (
@@ -352,7 +361,7 @@ export function BiomniAssistant() {
                                     size="sm"
                                     variant="outline"
                                     onClick={action.action}
-                                    className={`text-xs ${action.color} hover:${action.color}`}
+                                    className={`text-xs ${action.color} hover:${action.color} border-0`}
                                   >
                                     {action.icon}
                                     <span className="ml-1">{action.label}</span>
@@ -371,14 +380,14 @@ export function BiomniAssistant() {
                   
                   {isTyping && (
                     <div className="flex justify-start">
-                      <div className="flex items-center space-x-2 bg-white rounded-lg p-3 border border-gray-200">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                          <Bot className="w-4 h-4 text-white" />
+                      <div className="flex items-center space-x-2 bg-white rounded-lg p-3 border border-teal-200 shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center">
+                          <FlaskConical className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                         </div>
                       </div>
                     </div>
@@ -388,7 +397,7 @@ export function BiomniAssistant() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="p-4 bg-white border-t border-gray-200">
+                <div className="p-4 bg-white border-t border-teal-200">
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     {quickActions.map((action) => (
                       <Button
@@ -396,7 +405,7 @@ export function BiomniAssistant() {
                         variant="outline"
                         size="sm"
                         onClick={action.action}
-                        className="text-xs h-auto p-2 flex flex-col items-center space-y-1"
+                        className="text-xs h-auto p-2 flex flex-col items-center space-y-1 border-teal-200 hover:border-teal-300"
                       >
                         <div className={`w-6 h-6 rounded-full ${action.color} flex items-center justify-center text-white`}>
                           {action.icon}
@@ -412,7 +421,7 @@ export function BiomniAssistant() {
                       variant="outline"
                       size="sm"
                       onClick={handleVoiceInput}
-                      className={isListening ? 'bg-red-500 text-white' : ''}
+                      className={`${isListening ? 'bg-red-500 text-white' : 'border-teal-200 hover:border-teal-300'}`}
                     >
                       {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                     </Button>
@@ -422,13 +431,13 @@ export function BiomniAssistant() {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder="Ask me anything about your lab work..."
-                      className="flex-1"
+                      className="flex-1 border-teal-200 focus:border-teal-500 focus:ring-teal-500"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={!inputValue.trim()}
                       size="sm"
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                      className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
