@@ -2,201 +2,203 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/cards'
-import { Metric } from '@/components/ui/metrics'
-import { Play, ArrowRight, Shield, Zap, TrendingUp, Award, CheckCircle, AlertTriangle, BarChart3, Database, Upload, Brain, Sparkles, Activity, Clock } from 'lucide-react'
+import { Play, ArrowRight, Shield, Zap, TrendingUp, Award, CheckCircle, AlertTriangle, BarChart3, Database, Upload } from 'lucide-react'
 
 export function HeroSection() {
-  const demoMetrics = [
-    {
-      title: 'Sample Quality',
-      value: 'Excellent',
-      icon: <CheckCircle className="h-5 w-5 text-white" />,
-      description: 'No contamination detected',
-      variant: 'with-icon' as const
-    },
-    {
-      title: 'Equipment Status',
-      value: '142/145',
-      icon: <Activity className="h-5 w-5 text-white" />,
-      description: 'Online and operational',
-      variant: 'with-icon' as const
-    },
-    {
-      title: 'Maintenance Due',
-      value: '7 days',
-      icon: <Clock className="h-5 w-5 text-white" />,
-      description: 'Scheduled calibration',
-      variant: 'with-icon' as const
-    }
-  ]
-
   return (
-    <section className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-teal-500/5 rounded-full blur-2xl"></div>
-      </div>
-      
+    <section className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 relative overflow-hidden">
+      {/* Z-Pattern Layout Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        {/* TOP LEFT: Logo & Navigation Area */}
+        <div className="absolute top-8 left-8 z-20">
+          <div className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-primary-blue rounded-lg flex items-center justify-center">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-gray-900">LabGuard Pro</span>
+          </div>
+        </div>
+
+        {/* TOP RIGHT: Primary CTA */}
+        <div className="absolute top-8 right-8 z-20">
+          <Link
+            href="/dashboard"
+            className="bg-primary-green text-white px-8 py-3 rounded-xl font-semibold text-lg shadow-enterprise hover:shadow-enterprise-lg transition-all duration-enterprise flex items-center space-x-2 hover:scale-105"
+          >
+            <span>Try Demo Now</span>
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+
+        {/* CENTER: Hero Content with Dashboard Preview */}
         <div className="pt-32 pb-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Hero Content */}
             <div className="text-left">
-              {/* Badge */}
-              <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm border border-blue-500/30 rounded-full px-4 py-2 mb-8">
-                <Sparkles className="w-4 h-4 text-blue-400" />
-                <span className="text-blue-400 text-sm font-medium">Powered by Stanford Biomni AI</span>
-              </div>
-              
-              {/* Main Headline */}
-              <h1 className="text-5xl lg:text-7xl font-bold text-white mb-8 leading-tight">
-                AI-Powered <br />
-                <span className="text-gradient">Laboratory</span> <br />
-                <span className="text-gradient">Compliance</span>
+              {/* Main Headline with Z-pattern eye movement */}
+              <h1 className="text-5xl lg:text-6xl font-extrabold text-gray-900 mb-8 leading-tight">
+                <span className="block">Complete</span>
+                <span className="block text-primary-blue">Laboratory</span>
+                <span className="block text-primary-green">Management</span>
               </h1>
               
-              {/* Subtitle */}
-              <p className="text-xl lg:text-2xl text-gray-300 mb-12 leading-relaxed">
-                Transform your laboratory operations with Stanford's revolutionary Biomni AI. 
-                Automate compliance, streamline workflows, and ensure 100% accuracy.
+              {/* Subtitle with generous whitespace */}
+              <p className="text-xl lg:text-2xl text-gray-600 mb-12 leading-relaxed">
+                From basic equipment tracking to advanced enterprise analytics, 
+                LabGuard Pro provides everything you need for modern laboratory compliance and operations.
               </p>
               
-              {/* Key Features */}
-              <div className="mb-12 space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <Brain className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Enterprise Analytics</h3>
-                    <p className="text-gray-400">Advanced business intelligence & reporting</p>
-                  </div>
+              {/* Feature highlights */}
+              <div className="mb-8 space-y-3">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-gray-700">Enterprise Analytics & Business Intelligence</span>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center">
-                    <Database className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Bulk Operations</h3>
-                    <p className="text-gray-400">Efficient data management & automation</p>
-                  </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-gray-700">Bulk Operations & Data Management</span>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">LIMS Integration</h3>
-                    <p className="text-gray-400">Seamless API management & connectivity</p>
-                  </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-gray-700">LIMS Integration & API Management</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-gray-700">Workflow Automation & System Administration</span>
                 </div>
               </div>
               
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              {/* Primary CTA with scientific emerald accent */}
+              <div className="mb-16">
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 space-x-3"
+                  className="inline-flex items-center bg-primary-green text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-enterprise hover:shadow-enterprise-lg transition-all duration-enterprise hover:scale-105 space-x-3"
                 >
-                  <span>Start Free Trial</span>
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-                <Link
-                  href="/demo"
-                  className="inline-flex items-center bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all duration-300 space-x-3"
-                >
-                  <Play className="w-5 h-5" />
-                  <span>Watch Demo</span>
+                  <Zap className="w-6 h-6" />
+                  <span>Explore Platform</span>
+                  <ArrowRight className="w-6 h-6" />
                 </Link>
               </div>
             </div>
-            
-            {/* Right: Enhanced Interactive Demo Preview */}
+
+            {/* Right: Laboratory Dashboard Preview */}
             <div className="relative">
-              <Card variant="glass" className="backdrop-blur-xl border-white/10 shadow-2xl">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
+              <div className="bg-white rounded-2xl shadow-2xl p-6 border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-gray-900 text-lg">Platform Overview</h3>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">All Systems Active</span>
+                  </div>
+                </div>
+                
+                {/* Sample Platform Features */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <Shield className="w-6 h-6 text-white" />
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <BarChart3 className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <CardTitle className="text-white">Live Demo</CardTitle>
-                        <CardDescription className="text-gray-400">AI Analysis in Action</CardDescription>
+                        <div className="text-sm font-medium text-gray-900">Enterprise Analytics</div>
+                        <div className="text-xs text-gray-600">Business intelligence & insights</div>
                       </div>
                     </div>
+                    <span className="text-xs text-blue-700 bg-blue-100 px-3 py-1 rounded-full font-medium">Active</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Bulk Operations</div>
+                        <div className="text-xs text-gray-600">Batch processing & automation</div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-green-700 bg-green-100 px-3 py-1 rounded-full font-medium">Ready</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <Database className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">Data Management</div>
+                        <div className="text-xs text-gray-600">Import/export & validation</div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-purple-700 bg-purple-100 px-3 py-1 rounded-full font-medium">Active</span>
+                  </div>
+                </div>
+
+                {/* AI Validation Status */}
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-gray-400">Live</span>
+                      <Zap className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-gray-900">Complete Platform</span>
                     </div>
+                    <span className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full">Phase 3 Ready</span>
                   </div>
-                </CardHeader>
-                
-                <CardContent className="space-y-6">
-                  {/* Upload Area */}
-                  <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h4 className="text-lg font-semibold text-white mb-2">Upload Laboratory Image</h4>
-                    <p className="text-gray-400 mb-4">Drag & drop or click to analyze</p>
-                    <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                      Choose File
-                    </Button>
-                  </div>
-                  
-                  {/* Live Metrics */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-white">Real-time Metrics</h4>
-                    <div className="grid grid-cols-1 gap-3">
-                      {demoMetrics.map((metric) => (
-                        <Metric
-                          key={metric.title}
-                          title={metric.title}
-                          value={metric.value}
-                          icon={metric.icon}
-                          description={metric.description}
-                          variant={metric.variant}
-                          className="bg-white/5 border-white/10"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Analysis Results */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-semibold text-white">AI Analysis Results</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-500/20">
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                          <span className="text-white">Sample Quality: Excellent</span>
-                        </div>
-                        <span className="text-green-400 text-sm">No contamination</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                        <div className="flex items-center space-x-3">
-                          <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                          <span className="text-white">Equipment Maintenance</span>
-                        </div>
-                        <span className="text-yellow-400 text-sm">Due in 7 days</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                        <div className="flex items-center space-x-3">
-                          <TrendingUp className="w-5 h-5 text-blue-500" />
-                          <span className="text-white">Performance Optimized</span>
-                        </div>
-                        <span className="text-blue-400 text-sm">AI suggestions ready</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+              
+              {/* Floating AI Badge */}
+              <div className="absolute -top-3 -right-3 bg-gradient-to-r from-primary-blue to-primary-green text-white p-3 rounded-xl shadow-lg">
+                <Shield className="w-5 h-5" />
+              </div>
             </div>
           </div>
         </div>
+
+        {/* BOTTOM LEFT: Key Benefits & Stats */}
+        <div className="absolute bottom-20 left-8 z-20">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-enterprise border border-gray-200">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-primary-blue rounded-xl flex items-center justify-center">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">15+</div>
+                  <div className="text-sm text-gray-600 font-medium">Advanced Features</div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-primary-green rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-gray-900">100%</div>
+                  <div className="text-sm text-gray-600 font-medium">Platform Complete</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM RIGHT: Secondary CTA */}
+        <div className="absolute bottom-20 right-8 z-20">
+          <Link
+            href="/dashboard"
+            className="bg-white text-primary-blue border-2 border-primary-blue px-8 py-4 rounded-xl hover:bg-primary-blue hover:text-white transition-all duration-enterprise font-semibold text-lg shadow-enterprise hover:shadow-enterprise-lg flex items-center space-x-2"
+          >
+            <Play className="w-5 h-5" />
+            <span>Live Demo</span>
+          </Link>
+        </div>
+
+        {/* Diagonal Visual Elements to Guide Eye Movement */}
+        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-gradient-to-br from-primary-blue/10 to-primary-green/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-gradient-to-tr from-primary-green/10 to-primary-blue/10 rounded-full blur-3xl"></div>
       </div>
+
+      {/* Enterprise-grade background pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 to-white/50 opacity-30"></div>
     </section>
   )
 } 

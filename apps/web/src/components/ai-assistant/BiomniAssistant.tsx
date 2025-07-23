@@ -26,7 +26,7 @@ interface Suggestion {
 }
 
 export function BiomniAssistant() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // Changed to true to show immediately
   const [isExpanded, setIsExpanded] = useState(false);
   const [avatarState, setAvatarState] = useState<string>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,8 +37,12 @@ export function BiomniAssistant() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Debug log to verify component is rendering
+  console.log('BiomniAssistant component rendered, isVisible:', isVisible);
+
   // Initialize assistant
   useEffect(() => {
+    console.log('BiomniAssistant initializing...');
     const initializeAssistant = async () => {
       // Add welcome message
       setMessages([{
@@ -75,9 +79,11 @@ export function BiomniAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Proactive monitoring
+  // Proactive monitoring - simplified to avoid hiding the assistant
   const startProactiveMonitoring = () => {
+    console.log('Starting proactive monitoring...');
     setInterval(async () => {
+      console.log('Proactive monitoring check...');
       if (!isExpanded) {
         setAvatarState('analyzing');
         
@@ -98,7 +104,7 @@ export function BiomniAssistant() {
                 priority: criticalAction.priority,
                 confidence: 0.9
               });
-              setIsVisible(true);
+              // Don't hide the assistant, just show the suggestion
               setAvatarState('concerned');
               
               // Flash attention
@@ -108,6 +114,7 @@ export function BiomniAssistant() {
             setAvatarState('idle');
           }
         } catch (error) {
+          console.log('Proactive monitoring error:', error);
           setAvatarState('idle');
         }
       }
@@ -192,6 +199,21 @@ export function BiomniAssistant() {
           className="fixed bottom-6 right-6 z-50"
           style={{ zIndex: 1000 }}
         >
+          {/* Test Button - Always visible */}
+          <div className="absolute -top-12 right-0">
+            <Button
+              size="sm"
+              onClick={() => {
+                console.log('Test button clicked!');
+                setIsVisible(true);
+                setIsExpanded(!isExpanded);
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1"
+            >
+              Test Biomni
+            </Button>
+          </div>
+
           {/* Collapsed State with 3D Avatar */}
           {!isExpanded && (
             <motion.div

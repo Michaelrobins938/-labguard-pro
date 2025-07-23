@@ -1,108 +1,166 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Menu, X, Shield, ChevronDown, Zap } from 'lucide-react'
+import { ChevronDown, Menu, X } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export function Navigation() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSolutionsOpen, setIsSolutionsOpen] = useState(false)
+  const [isResourcesOpen, setIsResourcesOpen] = useState(false)
 
   return (
-    <header className="bg-white/10 backdrop-blur-md shadow-lg/20 border-b border-white/20 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo Section with modern branding */}
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500/80 to-purple-600/80 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg/30 border border-white/20">
-              <Shield className="w-6 h-6 text-white" />
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
             </div>
-            <div className="flex flex-col">
-              <span className="text-2xl font-bold text-white tracking-tight">LabGuard Pro</span>
-              <span className="text-xs text-gray-300 font-medium">Enterprise Compliance</span>
+            <span className="text-xl font-bold text-white">LabGuard Pro</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center space-x-8">
+            {/* Solutions Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsSolutionsOpen(!isSolutionsOpen)}
+                className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors"
+              >
+                <span>Solutions</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <AnimatePresence>
+                {isSolutionsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 mt-2 w-64 glass-card rounded-xl border border-white/10 p-4"
+                  >
+                    <div className="space-y-3">
+                      <Link href="/solutions/enterprise" className="block text-gray-300 hover:text-white transition-colors">
+                        Enterprise Compliance
+                      </Link>
+                      <Link href="/solutions/research" className="block text-gray-300 hover:text-white transition-colors">
+                        Research Labs
+                      </Link>
+                      <Link href="/solutions/clinical" className="block text-gray-300 hover:text-white transition-colors">
+                        Clinical Laboratories
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-          
-          {/* Navigation Links with glassmorphic styling */}
-          <nav className="hidden lg:flex space-x-8">
-            <a href="#features" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group">
-              What we do
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group flex items-center">
-              Our offerings
-              <ChevronDown className="w-4 h-4 ml-1" />
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group">
+
+            {/* Resources Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setIsResourcesOpen(!isResourcesOpen)}
+                className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors"
+              >
+                <span>Resources</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <AnimatePresence>
+                {isResourcesOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 mt-2 w-64 glass-card rounded-xl border border-white/10 p-4"
+                  >
+                    <div className="space-y-3">
+                      <Link href="/resources/documentation" className="block text-gray-300 hover:text-white transition-colors">
+                        Documentation
+                      </Link>
+                      <Link href="/resources/api" className="block text-gray-300 hover:text-white transition-colors">
+                        API Reference
+                      </Link>
+                      <Link href="/resources/support" className="block text-gray-300 hover:text-white transition-colors">
+                        Support Center
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <Link href="/pricing" className="text-gray-300 hover:text-white transition-colors">
               Pricing
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a href="#about" className="text-white hover:text-blue-400 transition-all duration-300 font-medium relative group">
-              Blog
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300 group-hover:w-full"></span>
-            </a>
-          </nav>
-          
-          {/* CTA Buttons with modern styling */}
-          <div className="flex items-center space-x-4">
-            <Link 
-              href="/auth/login" 
-              className="text-white hover:text-blue-400 transition-all duration-300 font-medium px-4 py-2 rounded-xl hover:bg-white/20 backdrop-blur-sm"
-            >
-              Log in
             </Link>
-            <Link
-              href="/auth/register"
-              className="bg-gray-900 text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-all duration-300 font-semibold shadow-lg/30 backdrop-blur-sm flex items-center space-x-2 border border-gray-200/20"
-            >
-              <span>Get Demo</span>
-              <Zap className="w-4 h-4" />
+            <Link href="/blog" className="text-gray-300 hover:text-white transition-colors">
+              Blog
             </Link>
           </div>
 
-          {/* Mobile menu button with glassmorphic styling */}
+          {/* CTA Buttons */}
+          <div className="hidden lg:flex items-center space-x-4">
+            <Link href="/auth/login">
+              <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/10">
+                Log in
+              </Button>
+            </Link>
+            <Link href="/auth/register">
+              <Button className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
+                Start Trial
+              </Button>
+            </Link>
+          </div>
+
+          {/* Mobile Menu Button */}
           <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-3 rounded-xl hover:bg-white/50 backdrop-blur-sm transition-all duration-300"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="lg:hidden text-gray-300 hover:text-white"
           >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
-        {/* Enhanced Mobile Navigation with glassmorphism */}
-        {isOpen && (
-          <div className="lg:hidden py-6 border-t border-white/20 bg-white/10 backdrop-blur-md">
-            <div className="flex flex-col space-y-4">
-              <a href="#features" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
-                What we do
-              </a>
-              <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
-                Our offerings
-              </a>
-              <a href="#pricing" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
-                Pricing
-              </a>
-              <a href="#about" className="text-white hover:text-blue-400 transition-all duration-300 font-medium py-2 px-4 rounded-xl hover:bg-white/20">
-                Blog
-              </a>
-              <div className="flex flex-col space-y-3 pt-6 border-t border-white/20">
-                <Link href="/auth/login">
-                  <Button variant="ghost" className="w-full justify-start text-white hover:text-blue-400 hover:bg-white/20 rounded-xl">
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden glass-card rounded-xl border border-white/10 mt-4 p-6"
+            >
+              <div className="space-y-4">
+                <Link href="/solutions" className="block text-gray-300 hover:text-white transition-colors">
+                  Solutions
+                </Link>
+                <Link href="/resources" className="block text-gray-300 hover:text-white transition-colors">
+                  Resources
+                </Link>
+                <Link href="/pricing" className="block text-gray-300 hover:text-white transition-colors">
+                  Pricing
+                </Link>
+                <Link href="/blog" className="block text-gray-300 hover:text-white transition-colors">
+                  Blog
+                </Link>
+                <div className="pt-4 border-t border-white/10">
+                  <Link href="/auth/login" className="block text-gray-300 hover:text-white transition-colors mb-2">
                     Log in
-                  </Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold shadow-lg/30 rounded-xl border border-gray-200/20">
-                    <Zap className="w-4 h-4 mr-2" />
-                    Get Demo
-                  </Button>
-                </Link>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white">
+                      Start Trial
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </header>
+    </nav>
   )
 } 

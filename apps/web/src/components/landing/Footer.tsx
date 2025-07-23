@@ -9,40 +9,40 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500/80 to-purple-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg/30 border border-white/20">
+              <div className="w-8 h-8 bg-gradient-to-br from-primary-blue to-primary-green rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">L</span>
               </div>
-              <span className="ml-2 text-xl font-bold tracking-tight">LabGuard Pro</span>
+              <span className="ml-2 text-xl font-bold">LabGuard Pro</span>
             </div>
-            <p className="text-gray-400 leading-relaxed">
+            <p className="text-gray-400">
               The leading AI-powered laboratory compliance platform.
             </p>
           </div>
           <div>
             <h3 className="font-semibold mb-4">Product</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="#features" className="hover:text-white transition-all duration-300">Features</Link></li>
-              <li><Link href="#pricing" className="hover:text-white transition-all duration-300">Pricing</Link></li>
-              <li><Link href="/api" className="hover:text-white transition-all duration-300">API</Link></li>
-              <li><Link href="/integrations" className="hover:text-white transition-all duration-300">Integrations</Link></li>
+              <li><Link href="#features" className="hover:text-white transition-colors duration-200">Features</Link></li>
+              <li><Link href="#pricing" className="hover:text-white transition-colors duration-200">Pricing</Link></li>
+              <li><Link href="/api" className="hover:text-white transition-colors duration-200">API</Link></li>
+              <li><Link href="/integrations" className="hover:text-white transition-colors duration-200">Integrations</Link></li>
             </ul>
           </div>
           <div>
             <h3 className="font-semibold mb-4">Company</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/about" className="hover:text-white transition-all duration-300">About</Link></li>
-              <li><Link href="/blog" className="hover:text-white transition-all duration-300">Blog</Link></li>
-              <li><Link href="/careers" className="hover:text-white transition-all duration-300">Careers</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition-all duration-300">Contact</Link></li>
+              <li><Link href="/about" className="hover:text-white transition-colors duration-200">About</Link></li>
+              <li><Link href="/blog" className="hover:text-white transition-colors duration-200">Blog</Link></li>
+              <li><Link href="/careers" className="hover:text-white transition-colors duration-200">Careers</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors duration-200">Contact</Link></li>
             </ul>
           </div>
           <div>
             <h3 className="font-semibold mb-4">Support</h3>
             <ul className="space-y-2 text-gray-400">
-              <li><Link href="/help" className="hover:text-white transition-all duration-300">Help Center</Link></li>
-              <li><Link href="/docs" className="hover:text-white transition-all duration-300">Documentation</Link></li>
-              <li><Link href="/status" className="hover:text-white transition-all duration-300">Status</Link></li>
-              <li><Link href="/security" className="hover:text-white transition-all duration-300">Security</Link></li>
+              <li><Link href="/help" className="hover:text-white transition-colors duration-200">Help Center</Link></li>
+              <li><Link href="/docs" className="hover:text-white transition-colors duration-200">Documentation</Link></li>
+              <li><Link href="/status" className="hover:text-white transition-colors duration-200">Status</Link></li>
+              <li><Link href="/security" className="hover:text-white transition-colors duration-200">Security</Link></li>
             </ul>
           </div>
         </div>

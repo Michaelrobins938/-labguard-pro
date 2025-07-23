@@ -1,194 +1,165 @@
 'use client'
 
 import { 
-  Shield, 
-  Clock, 
   BarChart3, 
-  Users, 
+  Database, 
   Zap, 
-  ArrowRight,
-  Database,
-  Upload,
+  Shield, 
+  Users, 
+  Globe,
+  Workflow,
   Search,
-  Key,
-  Server,
-  Activity,
-  Settings,
   CreditCard,
+  Settings,
   FileText,
-  Bell
+  Cpu
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 export function FeaturesSection() {
+  const features = [
+    {
+      icon: <BarChart3 className="w-8 h-8" />,
+      title: 'Enterprise Analytics',
+      description: 'Advanced business intelligence & reporting',
+      category: 'Advanced Enterprise Features'
+    },
+    {
+      icon: <Database className="w-8 h-8" />,
+      title: 'Bulk Operations',
+      description: 'Efficient data management & automation',
+      category: 'Advanced Enterprise Features'
+    },
+    {
+      icon: <Globe className="w-8 h-8" />,
+      title: 'LIMS Integration',
+      description: 'Seamless API management & connectivity',
+      category: 'Advanced Enterprise Features'
+    },
+    {
+      icon: <Cpu className="w-8 h-8" />,
+      title: 'API Management',
+      description: 'RESTful API with comprehensive documentation',
+      category: 'Advanced Enterprise Features'
+    },
+    {
+      icon: <Workflow className="w-8 h-8" />,
+      title: 'Workflow Automation',
+      description: 'Custom workflow creation and management',
+      category: 'Professional Tools'
+    },
+    {
+      icon: <Search className="w-8 h-8" />,
+      title: 'Global Search',
+      description: 'Advanced search across all data types',
+      category: 'Professional Tools'
+    },
+    {
+      icon: <CreditCard className="w-8 h-8" />,
+      title: 'Billing & Subscriptions',
+      description: 'Flexible billing plans and usage tracking',
+      category: 'Professional Tools'
+    },
+    {
+      icon: <Settings className="w-8 h-8" />,
+      title: 'System Administration',
+      description: 'Complete system management and monitoring',
+      category: 'Professional Tools'
+    },
+    {
+      icon: <FileText className="w-8 h-8" />,
+      title: 'Data Management',
+      description: 'Import/export center with validation',
+      category: 'Professional Tools'
+    },
+    {
+      icon: <Zap className="w-8 h-8" />,
+      title: 'AI-Powered Calibrations',
+      description: 'Smart scheduling with AI validation',
+      category: 'Core Laboratory Management'
+    },
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: 'Equipment Management',
+      description: 'Complete lifecycle tracking with QR codes',
+      category: 'Core Laboratory Management'
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: 'Team Collaboration',
+      description: 'Role-based access control and management',
+      category: 'Core Laboratory Management'
+    }
+  ]
+
+  const categories = ['Core Laboratory Management', 'Advanced Enterprise Features', 'Professional Tools']
+
   return (
-    <section className="py-24 bg-white" id="features">
+    <section className="enhanced-section" id="features">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+          <Badge className="enhanced-card px-4 py-2 rounded-full mb-6">
+            Complete Platform
+          </Badge>
+          <h2 className="enhanced-gradient-text mb-4">
             Complete Laboratory Management Platform
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            From basic equipment tracking to advanced enterprise analytics, we provide everything you need for modern laboratory compliance
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            From basic equipment tracking to advanced enterprise analytics, we provide everything you need for modern laboratory compliance and operations.
           </p>
         </div>
-        
-        {/* Core Features Grid */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">Core Laboratory Management</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Equipment Management */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-blue-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500/80 to-purple-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Settings className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Equipment Management</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Complete lifecycle tracking with QR codes, maintenance schedules, and detailed analytics for all laboratory equipment.
-              </p>
-            </div>
-            
-            {/* Calibration System */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-green-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500/80 to-blue-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">AI-Powered Calibrations</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Smart scheduling with AI validation, automated reminders, and comprehensive compliance tracking.
-              </p>
-            </div>
-            
-            {/* Team Collaboration */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-purple-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500/80 to-pink-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Team Collaboration</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Role-based access control, team management, and seamless collaboration across your laboratory.
-              </p>
+
+        {/* Features by Category */}
+        {categories.map((category, categoryIndex) => (
+          <div key={category} className="mb-16">
+            <h3 className="text-2xl font-semibold text-white mb-8 text-center">
+              {category}
+            </h3>
+            <div className="enhanced-feature-grid stagger-children">
+              {features
+                .filter(feature => feature.category === category)
+                .map((feature, index) => (
+                  <div key={index} className="enhanced-card group">
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300">
+                        {feature.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                          {feature.title}
+                        </h4>
+                        <p className="text-gray-300 leading-relaxed">
+                          {feature.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
-        </div>
+        ))}
 
-        {/* Advanced Features Grid */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">Advanced Enterprise Features</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Enterprise Analytics */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-red-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500/80 to-orange-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Enterprise Analytics</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Business intelligence with predictive insights, revenue tracking, and comprehensive performance metrics.
-              </p>
+        {/* Enterprise Stats */}
+        <div className="enhanced-card mt-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-3xl font-bold text-white mb-2">500+</div>
+              <div className="text-gray-400">Laboratories</div>
             </div>
-            
-            {/* Bulk Operations */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-orange-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500/80 to-yellow-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Upload className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Bulk Operations</h3>
-              <p className="text-gray-600 leading-relaxed">
-                File-based batch processing for equipment, calibrations, and data with predefined templates.
-              </p>
+            <div>
+              <div className="text-3xl font-bold text-white mb-2">99.9%</div>
+              <div className="text-gray-400">Uptime</div>
             </div>
-            
-            {/* Data Management */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-teal-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-teal-500/80 to-cyan-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Database className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Data Management</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Import/export center supporting CSV, Excel, JSON formats with comprehensive data validation.
-              </p>
+            <div>
+              <div className="text-3xl font-bold text-white mb-2">24/7</div>
+              <div className="text-gray-400">Support</div>
             </div>
-            
-            {/* LIMS Integration */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-indigo-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500/80 to-blue-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Server className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">LIMS Integration</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Connect to Laboratory Information Management Systems with real-time data synchronization.
-              </p>
-            </div>
-            
-            {/* API Management */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-yellow-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500/80 to-orange-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Key className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">API Management</h3>
-              <p className="text-gray-600 leading-relaxed">
-                RESTful API with key management, usage monitoring, and comprehensive documentation.
-              </p>
-            </div>
-            
-            {/* Automation */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-pink-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-pink-500/80 to-rose-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Workflow Automation</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Custom workflow creation and management with trigger-based automation and monitoring.
-              </p>
+            <div>
+              <div className="text-3xl font-bold text-white mb-2">100%</div>
+              <div className="text-gray-400">Compliance</div>
             </div>
           </div>
-        </div>
-
-        {/* Additional Features Grid */}
-        <div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">Professional Tools</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Global Search */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-gray-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-gray-500/80 to-slate-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Search className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Global Search</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Advanced search across all data types with intelligent filtering and quick access to information.
-              </p>
-            </div>
-            
-            {/* Billing & Subscriptions */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-emerald-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/80 to-green-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <CreditCard className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Billing & Subscriptions</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Flexible billing plans, usage tracking, payment processing, and comprehensive invoicing.
-              </p>
-            </div>
-            
-            {/* System Administration */}
-            <div className="bg-white/80 backdrop-blur-md p-8 rounded-2xl hover:shadow-lg/30 transition-all duration-300 border border-gray-200/30 hover:border-slate-200/50">
-              <div className="w-12 h-12 bg-gradient-to-br from-slate-500/80 to-gray-600/80 backdrop-blur-sm rounded-xl flex items-center justify-center mb-6 shadow-lg/30 border border-white/20">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-4">System Administration</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Complete system management, user administration, security monitoring, and backup management.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="text-center mt-16">
-          <button className="inline-flex items-center px-8 py-4 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all duration-300 shadow-lg/30 backdrop-blur-sm border border-gray-200/20">
-            Explore All Features
-            <ArrowRight className="ml-2 w-5 h-5" />
-          </button>
         </div>
       </div>
     </section>
