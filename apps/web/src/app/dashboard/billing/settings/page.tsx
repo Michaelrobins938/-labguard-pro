@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -66,11 +66,15 @@ export default function BillingSettingsPage() {
       const response = await apiService.billing.getBillingSettings()
       return response as BillingSettings
     },
-    enabled: !!session,
-    onSuccess: (data) => {
-      setSettings(data)
-    }
+    enabled: !!session
   })
+
+  // Update local settings when data is fetched
+  useEffect(() => {
+    if (billingSettings) {
+      setSettings(billingSettings)
+    }
+  }, [billingSettings])
 
   // Update billing settings mutation
   const updateSettingsMutation = useMutation({
@@ -92,7 +96,9 @@ export default function BillingSettingsPage() {
 
   const handleCancel = () => {
     setIsEditing(false)
-    setSettings(billingSettings)
+    if (billingSettings) {
+      setSettings(billingSettings)
+    }
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -100,13 +106,16 @@ export default function BillingSettingsPage() {
     
     if (field.includes('.')) {
       const [parent, child] = field.split('.')
-      setSettings({
-        ...settings,
-        [parent]: {
-          ...settings[parent as keyof BillingSettings],
-          [child]: value
-        }
-      })
+      const parentValue = settings[parent as keyof BillingSettings]
+      if (parentValue && typeof parentValue === 'object') {
+        setSettings({
+          ...settings,
+          [parent]: {
+            ...parentValue,
+            [child]: value
+          }
+        })
+      }
     } else {
       setSettings({
         ...settings,
